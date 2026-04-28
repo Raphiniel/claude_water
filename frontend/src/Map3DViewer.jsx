@@ -2,268 +2,395 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-const FLY_TO_ZOOM = 18;
-const PITCH_3D = 60;
-const BEARING_3D = -20;
-const LAYER_ID_3D = '3d-buildings';
+const GLOBE_CENTER = [29.8, -10];
+const GLOBE_ZOOM   = 1.5;
 
-const Map3DViewer = ({ waterPoints, onLocationSelected, selectedPos }) => {
-    const mapContainerRef = useRef(null);
-    const mapRef = useRef(null);
-    const markersRef = useRef({}); // Store references to standard markers
-    const newPointMarkerRef = useRef(null); // Reference to the "New Water Point" marker
-    
-    const [is3D, setIs3D] = useState(false);
-    const [activePoint, setActivePoint] = useState(null);
+const ZIM_CENTER = [29.8, -19.5];
+const ZIM_ZOOM   = 6.2;
 
-    // Initial map setup
-    useEffect(() => {
-        if (!mapContainerRef.current) return;
+const POINT_ZOOM    = 14;
+const POINT_PITCH   = 55;
+const POINT_BEARING = -20;
 
-        const map = new maplibregl.Map({
-            container: mapContainerRef.current,
-            style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-            center: [29.1549, -19.0154], // Zimbabwe center [lng, lat]
-            zoom: 6,
-            pitch: 0,
-            bearing: 0,
-            antialias: true
-        });
+const FAULT_COLORS = {
+  PENDING:     '#ef4444',
+  IN_PROGRESS: '#f59e0b',
+  RESOLVED:    '#10b981',
+};
 
-        mapRef.current = map;
+const FAULT_LABELS = {
+  PUMP: 'Pump', LEAK: 'Leak', DRY: 'Dry',
+  CONTAM: 'Contam', VANDAL: 'Vandal', OTHER: 'Other',
+};
 
-        map.on('load', () => {
-            // Click to add new point
-            map.on('click', (e) => {
-                if (onLocationSelected) {
-                    onLocationSelected({ lat: e.lngLat.lat, lng: e.lngLat.lng });
-                }
-            });
-        });
+const TILE_STYLE = {
+  version: 8,
+  sources: {
+    // Classic green/blue physical globe — shown at low zoom
+    physical: {
+      type: 'raster',
+      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}'],
+      tileSize: 256,
+      maxzoom: 8,
+      attribution: 'Esri',
+    },
+    // Satellite — shown when zoomed into Zimbabwe
+    satellite: {
+      type: 'raster',
+      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: 'Esri, Maxar, Earthstar Geographics',
+    },
+    // Place name labels — shown when zoomed in
+    labels: {
+      type: 'raster',
+      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
+      tileSize: 256,
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    // Physical globe fades out above zoom 7
+    { id: 'physical',  type: 'raster', source: 'physical',  maxzoom: 8 },
+    // Satellite fades in from zoom 5 onward
+    { id: 'satellite', type: 'raster', source: 'satellite', minzoom: 5 },
+    // Labels only when zoomed in
+    { id: 'labels',    type: 'raster', source: 'labels',    minzoom: 5 },
+  ],
+};
 
-        return () => {
-            map.remove();
-            mapRef.current = null;
-        };
-    }, []);
+const Map3DViewer = ({ waterPoints = [], reports = [], onLocationSelected, selectedPos, flyToCode }) => {
+  const mapContainerRef = useRef(null);
+  const mapRef          = useRef(null);
+  const markersRef      = useRef({});
+  const newMarkerRef    = useRef(null);
+  const rotationRef     = useRef(null);
+  const [mode, setMode] = useState('globe');
+  const [activeWP, setActiveWP] = useState(null);
 
-    // ─── Render New Selected Location Marker ───
-    useEffect(() => {
-        const map = mapRef.current;
-        if (!map) return;
+  const faultIndex = {};
+  reports.forEach(r => {
+    if (r.status === 'RESOLVED') return;
+    const c = r.water_point_code;
+    if (!faultIndex[c] || r.status === 'PENDING') faultIndex[c] = r;
+  });
 
-        // Clean up previous selection marker
-        if (newPointMarkerRef.current) {
-            newPointMarkerRef.current.remove();
-            newPointMarkerRef.current = null;
-        }
-
-        if (selectedPos) {
-            newPointMarkerRef.current = new maplibregl.Marker({ color: '#FF3366' })
-                .setLngLat([selectedPos.lng, selectedPos.lat])
-                .setPopup(new maplibregl.Popup({ offset: 25 }).setText('New Water Point Location'))
-                .addTo(map);
-            
-            // Re-open popup automatically
-            newPointMarkerRef.current.togglePopup();
-
-            // ZOOM TO 3D automatically when a new point is selected
-            setIs3D(true);
-            setActivePoint({ code: 'New Point', longitude: selectedPos.lng, latitude: selectedPos.lat });
-
-            map.flyTo({
-                center: [selectedPos.lng, selectedPos.lat],
-                zoom: FLY_TO_ZOOM,
-                pitch: PITCH_3D,
-                bearing: BEARING_3D,
-                duration: 2000,
-                essential: true
-            });
-
-            map.once('moveend', () => {
-                add3DLayer(map);
-            });
-        }
-    }, [selectedPos]);
-
-    // ─── Render Water Points (Existing) ───
-    useEffect(() => {
-        const map = mapRef.current;
-        if (!map) return;
-
-        // Remove old markers that are no longer in the list (or we can just blindly clear and re-add for simplicity)
-        Object.values(markersRef.current).forEach(m => m.remove());
-        markersRef.current = {};
-
-        waterPoints.forEach(wp => {
-            if (wp.latitude && wp.longitude) {
-                const el = document.createElement('div');
-                el.style.cssText = `
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    background-color: #3b82f6;
-                    border: 3px solid white;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-                    cursor: pointer;
-                    transition: transform 0.2s ease;
-                `;
-                
-                el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.2)');
-                el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)');
-
-                const popupHtml = `
-                    <div style="color: #222; font-family: sans-serif; padding: 4px;">
-                        <strong style="font-size: 14px;">${wp.code}</strong><br/>
-                        <span style="font-size: 13px;">${wp.location}</span><br/>
-                        <span style="font-size: 11px; color: #555;">${wp.description || ''}</span>
-                    </div>
-                `;
-
-                const marker = new maplibregl.Marker({ element: el })
-                    .setLngLat([wp.longitude, wp.latitude])
-                    .setPopup(new maplibregl.Popup({ offset: 15 }).setHTML(popupHtml))
-                    .addTo(map);
-                
-                el.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    handleMarkerClick(wp);
-                });
-
-                markersRef.current[wp.id] = marker;
-            }
-        });
-
-    }, [waterPoints]);
-
-    // ─── 3D Logic ───
-    const add3DLayer = (map) => {
-        if (map.getLayer(LAYER_ID_3D)) return;
-        
-        // Dark matter style uses 'carto' as vector source and 'building' as the layer
-        if (map.getSource('carto')) {
-            map.addLayer(
-                {
-                    id: LAYER_ID_3D,
-                    type: 'fill-extrusion',
-                    source: 'carto',
-                    'source-layer': 'building',
-                    filter: ['has', 'render_height'],
-                    paint: {
-                        'fill-extrusion-color': '#4a5568',
-                        'fill-extrusion-height': ['get', 'render_height'],
-                        'fill-extrusion-base': ['get', 'render_min_height'],
-                        'fill-extrusion-opacity': 0.8,
-                    },
-                }
-            );
-        }
+  // ── slow auto-rotation while in globe mode ────────────
+  const startRotation = (map) => {
+    let bearing = map.getBearing();
+    const spin = () => {
+      bearing -= 0.08;
+      map.setBearing(bearing);
+      rotationRef.current = requestAnimationFrame(spin);
     };
+    rotationRef.current = requestAnimationFrame(spin);
+  };
 
-    const handleMarkerClick = (wp) => {
-        const map = mapRef.current;
-        if (!map) return;
+  const stopRotation = () => {
+    if (rotationRef.current) {
+      cancelAnimationFrame(rotationRef.current);
+      rotationRef.current = null;
+    }
+  };
 
-        setIs3D(true);
-        setActivePoint(wp);
+  // ── init map ──────────────────────────────────────────
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
 
-        map.flyTo({
-            center: [wp.longitude, wp.latitude],
-            zoom: FLY_TO_ZOOM,
-            pitch: PITCH_3D,
-            bearing: BEARING_3D,
-            duration: 2000,
-            essential: true
-        });
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: TILE_STYLE,
+      projection: 'globe',
+      center: GLOBE_CENTER,
+      zoom: GLOBE_ZOOM,
+      pitch: 0,
+      bearing: 0,
+      antialias: true,
+      interactive: false, // disable default scroll/drag on globe so clicks feel intentional
+    });
 
-        map.once('moveend', () => {
-            add3DLayer(map);
-        });
+    mapRef.current = map;
+
+    map.on('load', () => {
+      map.setFog({
+        color:            'rgb(5,5,5)',
+        'high-color':     'rgb(10,10,10)',
+        'horizon-blend':  0.06,
+        'space-color':    '#000000',
+        'star-intensity': 0.95,
+      });
+
+      // start slow spin
+      startRotation(map);
+    });
+
+    return () => {
+      stopRotation();
+      map.remove();
+      mapRef.current = null;
     };
+  }, []);
 
-    const handleReset = () => {
-        const map = mapRef.current;
-        if (!map) return;
+  // ── globe click → Zimbabwe ────────────────────────────
+  const handleGlobeClick = () => {
+    const map = mapRef.current;
+    if (!map || mode !== 'globe') return;
 
-        if (map.getLayer(LAYER_ID_3D)) {
-            map.removeLayer(LAYER_ID_3D);
+    stopRotation();
+
+    // re-enable interactions for the zoomed-in view
+    map.scrollZoom.enable();
+    map.dragPan.enable();
+    map.dragRotate.enable();
+    map.doubleClickZoom.enable();
+    map.touchZoomRotate.enable();
+
+    map.flyTo({ center: ZIM_CENTER, zoom: ZIM_ZOOM, pitch: 0, bearing: 0, duration: 2400 });
+    setMode('country');
+    setActiveWP(null);
+
+    // wire up map click for location selection once zoomed in
+    map.on('click', (e) => {
+      if (onLocationSelected && map.getZoom() >= 5) {
+        onLocationSelected({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      }
+    });
+  };
+
+  // ── markers ───────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    Object.values(markersRef.current).forEach(m => m.remove());
+    markersRef.current = {};
+
+    waterPoints.forEach(wp => {
+      if (!wp.latitude || !wp.longitude) return;
+
+      const fault = faultIndex[wp.code];
+      const color = fault ? FAULT_COLORS[fault.status] || '#ef4444' : '#a3e635';
+      const hasFault = !!fault;
+
+      const el = document.createElement('div');
+      el.style.cssText = 'position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;';
+
+      if (hasFault) {
+        const lbl = document.createElement('div');
+        lbl.textContent = FAULT_LABELS[fault.fault_code] || fault.fault_code;
+        lbl.style.cssText = `
+          background:${color};color:white;font-size:10px;font-weight:700;
+          padding:2px 6px;border-radius:4px;white-space:nowrap;margin-bottom:3px;
+          box-shadow:0 2px 8px rgba(0,0,0,.55);font-family:sans-serif;
+          letter-spacing:.03em;animation:pulse-label 2s infinite;
+        `;
+        el.appendChild(lbl);
+      }
+
+      const dot = document.createElement('div');
+      dot.style.cssText = `
+        width:${hasFault ? '20px' : '15px'};height:${hasFault ? '20px' : '15px'};
+        border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.9);
+        box-shadow:0 2px 10px rgba(0,0,0,0.5)${hasFault ? `,0 0 0 5px ${color}44` : ''};
+        transition:transform .2s;
+      `;
+      el.appendChild(dot);
+      el.addEventListener('mouseenter', () => { dot.style.transform = 'scale(1.3)'; });
+      el.addEventListener('mouseleave', () => { dot.style.transform = 'scale(1)'; });
+
+      const popupHtml = fault
+        ? `<div style="font-family:sans-serif;padding:6px 2px;min-width:165px;">
+            <strong style="font-size:13px;color:#a3e635">${wp.code}</strong>
+            <div style="font-size:12px;color:#888;margin:2px 0">${wp.location}</div>
+            <hr style="border:none;border-top:1px solid #242424;margin:6px 0"/>
+            <div style="display:flex;justify-content:space-between;font-size:12px">
+              <span style="background:${color};color:white;padding:2px 7px;border-radius:10px;font-weight:700">${fault.status.replace('_',' ')}</span>
+              <span style="color:#fff;font-weight:600">${FAULT_LABELS[fault.fault_code] || fault.fault_code}</span>
+            </div>
+            <div style="font-size:11px;color:#888;margin-top:5px">Ticket: ${fault.ticket_number}</div>
+            <div style="font-size:11px;color:#888">From: ${fault.sender_number}</div>
+           </div>`
+        : `<div style="font-family:sans-serif;padding:4px 2px;">
+            <strong style="font-size:13px;color:#a3e635">${wp.code}</strong>
+            <div style="font-size:12px;color:#888">${wp.location}</div>
+            <div style="font-size:11px;color:#10b981;margin-top:4px;font-weight:600">✓ No active faults</div>
+           </div>`;
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([parseFloat(wp.longitude), parseFloat(wp.latitude)])
+        .setPopup(new maplibregl.Popup({ offset: 10, closeButton: false, className: 'wp-popup' }).setHTML(popupHtml))
+        .addTo(map);
+
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        zoomToPoint(map, wp);
+      });
+
+      markersRef.current[wp.code] = marker;
+    });
+  }, [waterPoints, reports]);
+
+  // ── selectedPos (new WP pin) ──────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedPos) return;
+    if (newMarkerRef.current) { newMarkerRef.current.remove(); newMarkerRef.current = null; }
+
+    newMarkerRef.current = new maplibregl.Marker({ color: '#a3e635' })
+      .setLngLat([selectedPos.lng, selectedPos.lat])
+      .setPopup(new maplibregl.Popup({ offset: 25 }).setText('New Water Point'))
+      .addTo(map);
+    newMarkerRef.current.togglePopup();
+
+    map.flyTo({ center: [selectedPos.lng, selectedPos.lat], zoom: POINT_ZOOM, pitch: POINT_PITCH, bearing: POINT_BEARING, duration: 2000 });
+    setMode('point');
+    setActiveWP({ code: 'New Point', location: '' });
+  }, [selectedPos]);
+
+  // ── flyToCode ─────────────────────────────────────────
+  useEffect(() => {
+    if (!flyToCode || !mapRef.current) return;
+    const wp = waterPoints.find(w => w.code === flyToCode);
+    if (wp?.latitude && wp?.longitude) {
+      zoomToPoint(mapRef.current, wp);
+      setTimeout(() => { markersRef.current[wp.code]?.togglePopup(); }, 2100);
+    }
+  }, [flyToCode, waterPoints]);
+
+  const zoomToPoint = (map, wp) => {
+    stopRotation();
+    map.scrollZoom.enable();
+    map.dragPan.enable();
+    map.flyTo({
+      center: [parseFloat(wp.longitude), parseFloat(wp.latitude)],
+      zoom: POINT_ZOOM, pitch: POINT_PITCH, bearing: POINT_BEARING, duration: 2000,
+    });
+    setMode('point');
+    setActiveWP(wp);
+  };
+
+  const goToZimbabwe = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    stopRotation();
+    map.flyTo({ center: ZIM_CENTER, zoom: ZIM_ZOOM, pitch: 0, bearing: 0, duration: 1800 });
+    setMode('country');
+    setActiveWP(null);
+  };
+
+  const goToGlobe = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    stopRotation();
+    map.scrollZoom.disable();
+    map.dragPan.disable();
+    map.dragRotate.disable();
+    map.doubleClickZoom.disable();
+    map.touchZoomRotate.disable();
+    map.flyTo({ center: GLOBE_CENTER, zoom: GLOBE_ZOOM, pitch: 0, bearing: 0, duration: 2000, essential: true });
+    map.once('moveend', () => startRotation(map));
+    setMode('globe');
+    setActiveWP(null);
+  };
+
+  return (
+    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+      <style>{`
+        @keyframes pulse-label {
+          0%,100% { opacity:1; transform:translateY(0); }
+          50%      { opacity:.82; transform:translateY(-2px); }
         }
+        .wp-popup .maplibregl-popup-content {
+          background:#141414 !important;border:1px solid #242424 !important;
+          border-radius:8px !important;padding:10px 12px !important;
+          box-shadow:0 8px 24px rgba(0,0,0,.7) !important;
+        }
+        .wp-popup .maplibregl-popup-tip { border-top-color:#141414 !important; }
+      `}</style>
 
-        map.easeTo({
-            pitch: 0,
-            bearing: 0,
-            zoom: 6,
-            duration: 1000
-        });
-
-        setIs3D(false);
-        setActivePoint(null);
-    };
-
-    return (
-        <div style={{ position: 'relative', height: '400px', width: '100%', marginBottom: '2rem' }}>
-            <div 
-                ref={mapContainerRef} 
-                style={{ 
-                    height: '100%', 
-                    width: '100%', 
-                    borderRadius: '12px', 
-                    overflow: 'hidden', 
-                    border: '1px solid var(--border-color)',
-                    background: '#1a1a1a'
-                }} 
-            />
-
-            {is3D && activePoint && (
-                <div style={{
-                    position: 'absolute',
-                    top: '16px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 10,
-                    background: 'rgba(255, 255, 255, 0.95)',
-                    padding: '8px 16px',
-                    borderRadius: '30px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    fontFamily: 'sans-serif'
-                }}>
-                    <div style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: '#3b82f6',
-                        boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.3)'
-                    }}></div>
-                    <span style={{ color: '#111', fontWeight: 'bold', fontSize: '14px' }}>
-                        {activePoint.code}
-                    </span>
-                    <span style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '12px', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
-                        3D View
-                    </span>
-                    <button 
-                        onClick={handleReset}
-                        style={{
-                            marginLeft: '8px',
-                            background: '#1f2937',
-                            color: 'white',
-                            border: 'none',
-                            padding: '6px 12px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'background 0.2s'
-                        }}
-                    >
-                        ← Back to 2D
-                    </button>
-                </div>
-            )}
+      {/* clickable globe overlay — only active in globe mode */}
+      {mode === 'globe' && (
+        <div
+          onClick={handleGlobeClick}
+          style={{
+            position: 'absolute', inset: 0, zIndex: 5, cursor: 'pointer',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'flex-end',
+            paddingBottom: '60px',
+          }}
+        >
+          <div style={{
+            background: 'rgba(10,10,10,0.75)', border: '1px solid rgba(163,230,53,0.35)',
+            borderRadius: 30, padding: '8px 20px', backdropFilter: 'blur(6px)',
+            fontFamily: 'sans-serif', display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#a3e635', boxShadow: '0 0 0 3px rgba(163,230,53,0.25)', animation: 'pulse-label 2s infinite' }} />
+            <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Click to explore Zimbabwe</span>
+          </div>
         </div>
-    );
+      )}
+
+      <div ref={mapContainerRef} style={{ height: '100%', width: '100%', borderRadius: '14px', overflow: 'hidden', background: '#000' }} />
+
+      {/* HUD — only shown after leaving globe */}
+      {mode !== 'globe' && (
+        <div style={{
+          position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 10, display: 'flex', alignItems: 'center', gap: 8,
+          background: 'rgba(10,10,10,0.88)', padding: '6px 14px', borderRadius: 30,
+          border: '1px solid rgba(163,230,53,0.2)', backdropFilter: 'blur(8px)',
+          fontFamily: 'sans-serif', whiteSpace: 'nowrap',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+        }}>
+          {mode === 'country' && (
+            <>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#a3e635' }} />
+              <span style={{ color: '#fff', fontWeight: 600, fontSize: 12 }}>Zimbabwe</span>
+              <span style={{ color: '#888', fontSize: 11 }}>— click a marker to zoom in</span>
+              <button onClick={goToGlobe} style={hudBtn}>← Globe</button>
+            </>
+          )}
+          {mode === 'point' && (
+            <>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#a3e635', boxShadow: '0 0 0 3px rgba(163,230,53,0.25)' }} />
+              <span style={{ color: '#a3e635', fontWeight: 700, fontSize: 13 }}>{activeWP?.code}</span>
+              <span style={{ background: 'rgba(163,230,53,0.12)', color: '#a3e635', fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>SATELLITE</span>
+              <button onClick={goToZimbabwe} style={hudBtn}>← Zimbabwe</button>
+              <button onClick={goToGlobe} style={{ ...hudBtn, background: 'transparent', color: '#666', borderColor: 'rgba(255,255,255,0.1)' }}>Globe</button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Legend */}
+      {mode !== 'globe' && (
+        <div style={{ position: 'absolute', bottom: 14, right: 14, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 10 }}>
+          {[
+            { color: '#ef4444', label: 'Pending fault' },
+            { color: '#f59e0b', label: 'In progress' },
+            { color: '#a3e635', label: 'No fault' },
+          ].map(({ color, label }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(10,10,10,0.8)', padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+              <span style={{ color: '#fff', fontSize: 10, fontFamily: 'sans-serif' }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const hudBtn = {
+  background: 'rgba(163,230,53,0.12)',
+  color: '#a3e635',
+  border: '1px solid rgba(163,230,53,0.3)',
+  padding: '3px 10px',
+  borderRadius: 16,
+  fontSize: 11,
+  fontWeight: 700,
+  cursor: 'pointer',
 };
 
 export default Map3DViewer;

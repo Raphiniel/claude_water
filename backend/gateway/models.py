@@ -1,5 +1,16 @@
 from django.db import models
 
+class Technician(models.Model):
+    name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=20)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    is_available = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
 class WaterPoint(models.Model):
     code = models.CharField(max_length=50, unique=True)
     location = models.CharField(max_length=255)
@@ -30,6 +41,7 @@ class FaultReport(models.Model):
     sender_number = models.CharField(max_length=20)
     ticket_number = models.CharField(max_length=20, unique=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    assigned_to = models.ForeignKey(Technician, null=True, blank=True, on_delete=models.SET_NULL, related_name='assignments')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

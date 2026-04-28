@@ -2,11 +2,12 @@ from .models import WaterPoint
 
 def validate_sms_report(message_text, sender_number):
     """
-    Parses and validates SMS in format: REPORT [WP_CODE] [FAULT_CODE]
+    Parses and validates SMS in format: [WP_CODE] [FAULT_CODE]
+    Also accepts legacy: REPORT [WP_CODE] [FAULT_CODE]
     Valid fault codes: PUMP, LEAK, DRY, CONTAM, VANDAL, OTHER
     """
-    parts = message_text.strip().split()
-    
+    parts = message_text.strip().upper().split()
+
     result = {
         'is_valid': False,
         'error_message': '',
@@ -17,13 +18,16 @@ def validate_sms_report(message_text, sender_number):
         }
     }
 
-    # Format check: Must have 3 parts and start with REPORT
-    if len(parts) != 3 or parts[0].upper() != 'REPORT':
-        result['error_message'] = "Invalid format. Use: REPORT [WP_CODE] [FAULT_CODE]"
+    # Strip optional REPORT prefix
+    if parts and parts[0] == 'REPORT':
+        parts = parts[1:]
+
+    if len(parts) != 2:
+        result['error_message'] = "Invalid format. Send: WP_CODE FAULT_CODE (e.g. WP01 PUMP)"
         return result
 
-    wp_code = parts[1].upper()
-    fault_code = parts[2].upper()
+    wp_code = parts[0]
+    fault_code = parts[1]
 
     # Validate Water Point Code
     try:

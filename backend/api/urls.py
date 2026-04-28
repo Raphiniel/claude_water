@@ -1,9 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import FaultReportViewSet, SystemSettingViewSet, sms_webhook, password_change
+from .views import SystemSettingViewSet, sms_webhook, password_change
 
 router = DefaultRouter()
-router.register(r'reports', FaultReportViewSet)
 router.register(r'settings', SystemSettingViewSet)
 
 urlpatterns = [
