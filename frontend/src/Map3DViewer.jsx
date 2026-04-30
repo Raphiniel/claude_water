@@ -26,15 +26,7 @@ const FAULT_LABELS = {
 const TILE_STYLE = {
   version: 8,
   sources: {
-    // Classic green/blue physical globe — shown at low zoom
-    physical: {
-      type: 'raster',
-      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}'],
-      tileSize: 256,
-      maxzoom: 8,
-      attribution: 'Esri',
-    },
-    // Satellite — shown when zoomed into Zimbabwe
+    // Satellite — the primary look for the globe
     satellite: {
       type: 'raster',
       tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
@@ -42,7 +34,7 @@ const TILE_STYLE = {
       maxzoom: 19,
       attribution: 'Esri, Maxar, Earthstar Geographics',
     },
-    // Place name labels — shown when zoomed in
+    // Place name labels
     labels: {
       type: 'raster',
       tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
@@ -51,12 +43,10 @@ const TILE_STYLE = {
     },
   },
   layers: [
-    // Physical globe fades out above zoom 7
-    { id: 'physical',  type: 'raster', source: 'physical',  maxzoom: 8 },
-    // Satellite fades in from zoom 5 onward
-    { id: 'satellite', type: 'raster', source: 'satellite', minzoom: 5 },
-    // Labels only when zoomed in
-    { id: 'labels',    type: 'raster', source: 'labels',    minzoom: 5 },
+    // Satellite is the base layer now
+    { id: 'satellite', type: 'raster', source: 'satellite', minzoom: 0 },
+    // Labels only when zoomed in to avoid cluttering the globe
+    { id: 'labels',    type: 'raster', source: 'labels',    minzoom: 5.5 },
   ],
 };
 
@@ -101,24 +91,27 @@ const Map3DViewer = ({ waterPoints = [], reports = [], onLocationSelected, selec
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: TILE_STYLE,
-      projection: 'globe',
+      projection: { name: 'globe' }, // explicitly use object syntax
       center: GLOBE_CENTER,
       zoom: GLOBE_ZOOM,
       pitch: 0,
       bearing: 0,
       antialias: true,
-      interactive: false, // disable default scroll/drag on globe so clicks feel intentional
+      interactive: false,
     });
 
     mapRef.current = map;
 
     map.on('load', () => {
+      // Re-assert projection on load
+      map.setProjection({ name: 'globe' });
+      
       map.setFog({
-        color:            'rgb(5,5,5)',
-        'high-color':     'rgb(10,10,10)',
-        'horizon-blend':  0.06,
+        color:            'rgb(5, 5, 5)',
+        'high-color':     'rgb(15, 15, 15)',
+        'horizon-blend':  0.08,
         'space-color':    '#000000',
-        'star-intensity': 0.95,
+        'star-intensity': 1.0,
       });
 
       // start slow spin
@@ -321,12 +314,27 @@ const Map3DViewer = ({ waterPoints = [], reports = [], onLocationSelected, selec
           }}
         >
           <div style={{
-            background: 'rgba(10,10,10,0.75)', border: '1px solid rgba(163,230,53,0.35)',
-            borderRadius: 30, padding: '8px 20px', backdropFilter: 'blur(6px)',
-            fontFamily: 'sans-serif', display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(10,10,10,0.85)',
+            border: '2px solid #a3e635',
+            borderRadius: 40,
+            padding: '12px 32px',
+            backdropFilter: 'blur(12px)',
+            fontFamily: 'sans-serif',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.8), 0 0 15px rgba(163,230,53,0.15)',
+            transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
           }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#a3e635', boxShadow: '0 0 0 3px rgba(163,230,53,0.25)', animation: 'pulse-label 2s infinite' }} />
-            <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Click to explore Zimbabwe</span>
+            <span style={{
+              color: '#a3e635',
+              fontSize: '15px',
+              fontWeight: '700',
+              letterSpacing: '0.01em',
+              textShadow: '0 0 12px rgba(163,230,53,0.3)',
+            }}>
+              Click anywhere on the globe to zoom into Zimbabwe
+            </span>
           </div>
         </div>
       )}
