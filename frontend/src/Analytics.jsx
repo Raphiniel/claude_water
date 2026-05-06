@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 
-const API = 'http://localhost:8000';
+import { API_BASE as API } from './apiConfig';
 
 const Analytics = () => {
   const [reports, setReports] = useState([]);

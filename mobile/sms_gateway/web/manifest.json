@@ -1,0 +1,35 @@
+{
+    "name": "WaterWise API",
+    "short_name": "WaterWise",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0369A1",
+    "theme_color": "#0369A1",
+    "description": "SMS gateway for WaterWise fault reports.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

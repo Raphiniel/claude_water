@@ -12,8 +12,9 @@ import GlobeHero from './GlobeHero';
 import Layout from './Layout';
 import Sms from './Sms';
 import Analytics from './Analytics';
-
-const API = 'http://localhost:8000';
+import ProjectMap from './ProjectMap';
+import Help from './Help';
+import { API_BASE as API } from './apiConfig';
 
 const FAULT_LABELS = {
   PUMP: 'Pump Failure', LEAK: 'Pipe Leak', DRY: 'Borehole Dry',
@@ -317,7 +318,7 @@ const Dashboard = () => {
             
             <div style={{
               height: '100%',
-              minHeight: '300px',
+              minHeight: '200px',
               transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
               width: '100%',
               position: 'relative',
@@ -335,7 +336,7 @@ const Dashboard = () => {
           </div>
 
           {/* Recent Fault Reports */}
-          <div className="panel" style={{ display: globeMode === 'map' ? 'none' : 'flex', maxHeight: '25%', flexShrink: 0, marginTop: 'auto' }}>
+          <div className="panel" style={{ display: globeMode === 'map' ? 'none' : 'flex', maxHeight: '30%', flexShrink: 0, marginTop: 'auto' }}>
             <div className="panel-header" style={{ marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <h3 className="panel-title">Recent Fault Reports</h3>
@@ -578,10 +579,12 @@ function App() {
           <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
           <Route path="/waterpoints" element={<ProtectedRoute><Layout><WaterPoints /></Layout></ProtectedRoute>} />
+          <Route path="/map" element={<ProtectedRoute><Layout><ProjectMap /></Layout></ProtectedRoute>} />
           <Route path="/technicians" element={<ProtectedRoute><Layout><Technicians /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
           <Route path="/sms" element={<ProtectedRoute><Layout><Sms /></Layout></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Layout><Analytics /></Layout></ProtectedRoute>} />
+          <Route path="/help" element={<ProtectedRoute><Layout><Help /></Layout></ProtectedRoute>} />
         </Routes>
       </Router>
     </AuthProvider>

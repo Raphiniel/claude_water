@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { formatDate } from './App';
 
-const API = 'http://localhost:8000';
+import { API_BASE as API } from './apiConfig';
 
 const FAULT_LABELS = {
   PUMP: 'Pump Failure', LEAK: 'Pipe Leak', DRY: 'Borehole Dry',

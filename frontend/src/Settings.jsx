@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { API_BASE } from './apiConfig';
 
 const Settings = () => {
     const [mode, setMode] = useState('NORMAL');
@@ -16,7 +17,7 @@ const Settings = () => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const response = await axios.get('http://localhost:8000/api/settings/', {
+                const response = await axios.get(`${API_BASE}/api/settings/`, {
                     headers: { Authorization: `Bearer ${user.token}` }
                 });
                 setMode(response.data.mode);
@@ -29,7 +30,7 @@ const Settings = () => {
 
     const handleModeChange = async (newMode) => {
         try {
-            await axios.post('http://localhost:8000/api/settings/', { mode: newMode }, {
+            await axios.post(`${API_BASE}/api/settings/`, { mode: newMode }, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             setMode(newMode);
@@ -48,7 +49,7 @@ const Settings = () => {
 
         setLoading(true);
         try {
-            await axios.post('http://localhost:8000/api/password-change/', {
+            await axios.post(`${API_BASE}/api/password-change/`, {
                 old_password: oldPassword,
                 new_password: newPassword
             }, {

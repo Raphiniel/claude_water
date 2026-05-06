@@ -3,8 +3,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate } from 'react-router-dom';
 
-const GLOBE_CENTER = [0, 15];   // centred on Earth so full globe is visible
-const GLOBE_ZOOM   = 0.5;       // zoomed far out — full planet in view
+const GLOBE_CENTER = [0, 0];   // perfectly centered
+const GLOBE_ZOOM   = -0.8;     // zoom out so globe fits in small containers
 const ZIM_CENTER   = [29.8, -19.5];
 const ZIM_ZOOM     = 6.2;
 const POINT_ZOOM    = 14;
@@ -128,6 +128,7 @@ const GlobeHero = ({
       projection: { name: 'globe' },
       center: GLOBE_CENTER,
       zoom: GLOBE_ZOOM,
+      minZoom: -2,
       pitch: 0, bearing: 0,
       antialias: true,
       interactive: false,
@@ -291,8 +292,8 @@ const GlobeHero = ({
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 110%;
-          height: 110%;
+          width: 90%;
+          height: 90%;
           border-radius: 50%;
           background: radial-gradient(circle, rgba(163,230,53,0.1) 0%, rgba(163,230,53,0.02) 40%, transparent 70%);
           pointer-events: none;
@@ -301,7 +302,7 @@ const GlobeHero = ({
 
         .globe-container {
           position: relative;
-          height: 82%;
+          height: 100%;
           aspect-ratio: 1 / 1;
           border-radius: 50%;
           overflow: hidden;

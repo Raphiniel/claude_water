@@ -1,24 +1,21 @@
 import logging
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import FaultReport, SystemSetting
 from .serializers import FaultReportSerializer, SystemSettingSerializer, PasswordChangeSerializer
-import africastalking
-from django.conf import settings
+from gateway.sms_service import send_outbound_sms
 
 logger = logging.getLogger(__name__)
-
-# Initialize Africa's Talking
-africastalking.initialize(settings.AT_USERNAME, settings.AT_API_KEY)
-sms = africastalking.SMS
 
 class FaultReportViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = FaultReport.objects.all().order_by('-created_at')
     serializer_class = FaultReportSerializer
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def sms_webhook(request):
@@ -40,9 +37,33 @@ def sms_webhook(request):
     
     try:
         reply_message = "Thank you for reporting to Waterwise. We have received your fault report and will attend to it."
-        sms.send(reply_message, [phone_number])
+        send_outbound_sms(reply_message, [phone_number])
     except Exception as e:
         logger.error(f"Failed to send Africa's Talking SMS reply: {e}")
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_sms(request):
+    """
+    Endpoint for frontend to send outbound SMS via Africa's Talking.
+    """
+    recipient = request.data.get('recipient')
+    message = request.data.get('message')
+    
+    if not recipient or not message:
+        return Response({'error': 'Recipient and message are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    # Ensure recipient is formatted correctly (e.g. +263...)
+    if not recipient.startswith('+'):
+        return Response({'error': 'Recipient must include country code starting with +'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        response = send_outbound_sms(message, [recipient])
+        logger.info(f"Outbound SMS sent to {recipient}: {response}")
+        return Response({'status': 'Message sent successfully', 'data': response}, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error(f"Failed to send Africa's Talking SMS: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
 class SystemSettingViewSet(viewsets.ModelViewSet):
