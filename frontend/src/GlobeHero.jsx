@@ -100,19 +100,23 @@ const GlobeHero = ({
   });
 
   const startRotation = (map) => {
-    let currentLng = map.getCenter().lng;
-    const currentLat = map.getCenter().lat;
-    
+    let currentBearing = map.getBearing();
     const spin = () => {
-      currentLng -= 0.15; 
-      if (currentLng < -180) currentLng += 360;
-      if (mapRef.current) {
-        mapRef.current.jumpTo({ center: [currentLng, currentLat] });
+      currentBearing += 0.08;
+      if (currentBearing >= 180) currentBearing -= 360;
+      if (mapRef.current && mode === 'globe') {
+        // Smooth, infinite left-to-right marquee-like globe spin.
+        mapRef.current.jumpTo({
+          center: GLOBE_CENTER,
+          bearing: currentBearing,
+          pitch: 0,
+        });
         rotationRef.current = requestAnimationFrame(spin);
       }
     };
     rotationRef.current = requestAnimationFrame(spin);
   };
+
   const stopRotation = () => {
     if (rotationRef.current) {
       cancelAnimationFrame(rotationRef.current);
@@ -143,7 +147,6 @@ const GlobeHero = ({
         'space-color':    'rgba(0, 0, 0, 0)',          
         'star-intensity': 0.0,                         
       });
-      startRotation(map);
     });
 
     const resizeObserver = new ResizeObserver(() => {
@@ -184,6 +187,17 @@ const GlobeHero = ({
         onLocationSelected({ lat: e.lngLat.lat, lng: e.lngLat.lng });
       }
     });
+  }, [mode]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (mode === 'globe' && !rotationRef.current) {
+      startRotation(map);
+    }
+    if (mode === 'map') {
+      stopRotation();
+    }
   }, [mode]);
 
   useEffect(() => {
@@ -283,6 +297,16 @@ const GlobeHero = ({
           0%, 100% { opacity: 0.3; }
           50% { opacity: 1; }
         }
+        @keyframes shineSweep {
+          0% { transform: translateX(-160%) skewX(-22deg); opacity: 0; }
+          15% { opacity: 0.22; }
+          45% { opacity: 0.12; }
+          100% { transform: translateX(180%) skewX(-22deg); opacity: 0; }
+        }
+        @keyframes globeShadowPulse {
+          0%, 100% { box-shadow: 0 0 80px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.6); }
+          50% { box-shadow: 0 0 100px rgba(0,0,0,0.86), inset 0 0 70px rgba(0,0,0,0.68); }
+        }
 
         /* Hide attribution for clean look */
         .maplibregl-ctrl-attrib { display: none !important; }
@@ -313,6 +337,7 @@ const GlobeHero = ({
           flex-shrink: 0;
           background: #000;
           z-index: 10;
+          transform-style: preserve-3d;
         }
 
         .globe-container:hover {
@@ -338,6 +363,16 @@ const GlobeHero = ({
             radial-gradient(2px 2px at 300px 250px, white, transparent);
           background-size: 400px 400px;
           animation: twinkle 4s infinite alternate;
+        }
+        .globe-highlight {
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 14;
+          background: linear-gradient(120deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.22) 18%, rgba(255,255,255,0.06) 36%, rgba(255,255,255,0) 56%);
+          mix-blend-mode: screen;
+          animation: shineSweep 8s ease-in-out infinite;
         }
       `}</style>
 
@@ -367,10 +402,12 @@ const GlobeHero = ({
           style={{
             zIndex: 10,
             transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            animation: mode === 'globe' ? 'globeShadowPulse 5s ease-in-out infinite' : 'none',
             ...(mode === 'map' ? { width: '100%', height: '100%', position: 'absolute', inset: 0, borderRadius: '16px' } : {})
           }}
         >
           <div ref={mapContainerRef} style={{ width: '100%', height: '100%', background: 'transparent' }} />
+          {mode === 'globe' && <div className="globe-highlight" />}
         </div>
 
         {mode === 'map' && (

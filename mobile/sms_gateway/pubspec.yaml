@@ -53,7 +53,8 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: assets/images/app_icon.png
-  adaptive_icon_background: "#0d0d0d"
+  # Matches web favicon backdrop (deep purple; foreground is rasterized favicon.svg)
+  adaptive_icon_background: "#120818"
   adaptive_icon_foreground: assets/images/app_icon_foreground.png
   remove_alpha_ios: true
 

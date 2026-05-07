@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from './AuthContext';
-import { DOCS_URL } from './apiConfig';
+import { API_BASE as API, DOCS_URL } from './apiConfig';
 
 // Icons
 const IconDashboard = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>;
@@ -17,21 +18,61 @@ const IconAnalytics = () => <svg width="18" height="18" viewBox="0 0 24 24" fill
 const IconHelp = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
 const IconMap = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><map name="map"></map><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>;
 
+const FAULT_LABELS = {
+  PUMP: 'Pump Failure',
+  LEAK: 'Pipe Leak',
+  DRY: 'Borehole Dry',
+  CONTAM: 'Contamination',
+  VANDAL: 'Vandalism',
+  OTHER: 'Other',
+};
+
+const timeAgo = (dateInput) => {
+  if (!dateInput) return 'Just now';
+  const then = new Date(dateInput).getTime();
+  if (Number.isNaN(then)) return 'Just now';
+  const diffSec = Math.max(1, Math.floor((Date.now() - then) / 1000));
+  if (diffSec < 60) return `${diffSec}s ago`;
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+  return `${Math.floor(diffSec / 86400)}d ago`;
+};
+
 const Layout = ({ children }) => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "New fault reported at WP001", time: "2 min ago", read: false, type: "critical" },
-    { id: 2, text: "System maintenance scheduled", time: "1 hr ago", read: false, type: "info" },
-    { id: 3, text: "Technician marked WP005 as resolved", time: "2 hrs ago", read: false, type: "success" }
-  ]);
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const [notifications, setNotifications] = useState([]);
+  const [dismissedNotificationIds, setDismissedNotificationIds] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem('dismissedNotificationIds');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const unreadCount = notifications.length;
 
-  const markAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  const clearAllNotifications = () => {
+    setDismissedNotificationIds(prev => {
+      const ids = [...new Set([...prev, ...notifications.map(n => n.id)])];
+      window.localStorage.setItem('dismissedNotificationIds', JSON.stringify(ids));
+      return ids;
+    });
+    setNotifications([]);
+  };
+
+  const dismissNotification = (notification) => {
+    setDismissedNotificationIds(prev => {
+      const ids = prev.includes(notification.id) ? prev : [...prev, notification.id];
+      window.localStorage.setItem('dismissedNotificationIds', JSON.stringify(ids));
+      return ids;
+    });
+    setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    setShowNotifications(false);
+    navigate('/reports');
   };
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +103,44 @@ const Layout = ({ children }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const fetchLiveNotifications = useCallback(async () => {
+    if (!user?.token) return;
+    try {
+      const res = await axios.get(`${API}/api/reports/`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const data = Array.isArray(res.data) ? res.data : [];
+      const sorted = [...data].sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
+      const nextNotifications = sorted
+        .slice(0, 20)
+        .map((report) => {
+          const status = report.status || 'PENDING';
+          const type = status === 'PENDING' ? 'critical' : status === 'RESOLVED' ? 'success' : 'info';
+          return {
+            id: `report-${report.id}`,
+            type,
+            time: timeAgo(report.created_at),
+            text:
+              status === 'RESOLVED'
+                ? `${report.water_point_code || 'Unknown point'} resolved`
+                : `${FAULT_LABELS[report.fault_code] || report.fault_code || 'Fault'} at ${report.water_point_code || 'Unknown point'}`,
+          };
+        })
+        .filter((item) => !dismissedNotificationIds.includes(item.id));
+      setNotifications(nextNotifications);
+    } catch {
+      // Notification failures should not block dashboard usage.
+    }
+  }, [dismissedNotificationIds, user?.token]);
+
+  useEffect(() => {
+    fetchLiveNotifications();
+    const t = setInterval(fetchLiveNotifications, 15000);
+    return () => clearInterval(t);
+  }, [fetchLiveNotifications]);
 
   const navItems = [
     { to: '/', label: 'Dashboard', icon: <IconDashboard />, end: true },
@@ -250,7 +329,7 @@ const Layout = ({ children }) => {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid var(--card-border)' }}>
                       <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Notifications</span>
                       {unreadCount > 0 && (
-                        <button onClick={markAllRead} style={{ background: 'transparent', border: 'none', color: '#a3e635', fontSize: '0.75rem', cursor: 'pointer' }}>Mark all read</button>
+                        <button onClick={clearAllNotifications} style={{ background: 'transparent', border: 'none', color: '#a3e635', fontSize: '0.75rem', cursor: 'pointer' }}>Clear all</button>
                       )}
                     </div>
                     <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
@@ -258,13 +337,13 @@ const Layout = ({ children }) => {
                         <div style={{ padding: '2rem', textAlign: 'center', color: '#888', fontSize: '0.85rem' }}>No notifications</div>
                       ) : (
                         notifications.map(n => (
-                          <div key={n.id} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--card-border)', display: 'flex', gap: '0.75rem', opacity: n.read ? 0.6 : 1, background: n.read ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                          <button key={n.id} onClick={() => dismissNotification(n)} style={{ width: '100%', textAlign: 'left', padding: '0.75rem 1rem', border: 'none', borderBottom: '1px solid var(--card-border)', display: 'flex', gap: '0.75rem', background: 'rgba(255,255,255,0.02)', cursor: 'pointer' }}>
                             <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.type === 'critical' ? '#ef4444' : n.type === 'success' ? '#10b981' : '#3b82f6', marginTop: '6px', flexShrink: 0 }} />
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               <span style={{ fontSize: '0.85rem', color: '#fff', lineHeight: 1.3 }}>{n.text}</span>
                               <span style={{ fontSize: '0.7rem', color: '#888' }}>{n.time}</span>
                             </div>
-                          </div>
+                          </button>
                         ))
                       )}
                     </div>

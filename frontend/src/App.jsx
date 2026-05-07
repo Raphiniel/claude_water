@@ -110,65 +110,12 @@ const KPITableModal = ({ type, onClose, reports, waterPoints, navigate }) => {
   );
 };
 
-const MiniTablePreview = ({ data, type }) => (
-  <div className="mini-preview-container">
-    <table className="mini-table">
-      <tbody>
-        {data.length === 0 ? (
-          <tr><td colSpan="2" style={{ textAlign: 'center', opacity: 0.5 }}>No data</td></tr>
-        ) : (
-          data.slice(0, 2).map((item, i) => (
-            <tr key={i}>
-              <td className="mini-table-code">{type === 'TOTAL' ? item.code : item.ticket_number?.slice(-6)}</td>
-              <td style={{ textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px' }}>
-                {type === 'TOTAL' ? (item.location || 'Unknown') : (FAULT_LABELS[item.fault_code] || item.fault_code)}
-              </td>
-            </tr>
-          ))
-        )}
-      </tbody>
-    </table>
-  </div>
-);
-
-const MiniBarChart = ({ color }) => (
-  <div className="mini-preview-container">
-    <div className="mini-bar-container">
-      {[35, 65, 45, 85, 55, 95, 75].map((h, i) => (
-        <div key={i} className="mini-bar" style={{ height: `${h}%`, background: i === 5 ? color : `${color}22` }} />
-      ))}
-    </div>
-  </div>
-);
-
-const MiniPieChart = ({ percentage, color }) => (
-  <div className="mini-preview-container">
-    <div className="mini-pie-container">
-      <div style={{ 
-        width: '32px', 
-        height: '32px', 
-        borderRadius: '50%', 
-        background: `conic-gradient(${color} ${percentage}%, rgba(255,255,255,0.05) 0)`,
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--card-bg)' }} />
-      </div>
-      <span style={{ fontSize: '1.1rem', fontWeight: 800, color }}>{percentage}%</span>
-      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>Success Rate</span>
-    </div>
-  </div>
-);
-
 const Dashboard = () => {
   const [reports, setReports] = useState([]);
   const [waterPoints, setWaterPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [showAddWP, setShowAddWP] = useState(false);
-  const [showOptions, setShowOptions] = useState(false);
   const [globeMode, setGlobeMode] = useState('globe');
   const [selectedPos, setSelectedPos] = useState(null);
   const [newWP, setNewWP] = useState({ code: '', location: '', description: '', latitude: '', longitude: '' });
@@ -230,71 +177,24 @@ const Dashboard = () => {
     }
   };
 
-  const recentReports = [...reports].slice(0, 5);
-  const pendingReports = reports.filter(r => r.status === 'PENDING').slice(0, 2);
+  const pendingReports = reports.filter(r => r.status === 'PENDING').slice(0, 3);
+  const inProgressReports = reports.filter(r => r.status === 'IN_PROGRESS').slice(0, 3);
 
   return (
     <div style={{ 
       display: 'flex', 
       flexDirection: 'column', 
       gap: '1.25rem', 
-      height: globeMode === 'map' ? 'auto' : 'calc(100vh - 100px)',
+      height: 'calc(100vh - 100px)',
       minHeight: 0
     }}>
       {fetchError && (
         <div className="alert alert-error">API error: {fetchError}</div>
       )}
 
-      {/* ── Top Metric Cards ────────────────────────────────── */}
-      <div className="four-stats-grid" style={{ display: globeMode === 'map' ? 'none' : 'grid' }}>
-        <div className="mini-stat-card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveModal('TOTAL')}>
-          <div className="mini-stat-header">
-            <div className="mini-stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
-            </div>
-            <span className="mini-stat-label">Points</span>
-          </div>
-          <div className="mini-stat-value">{waterPoints.length}</div>
-          <MiniTablePreview data={waterPoints} type="TOTAL" />
-        </div>
-
-        <div className="mini-stat-card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveModal('PENDING')}>
-          <div className="mini-stat-header">
-            <div className="mini-stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
-            </div>
-            <span className="mini-stat-label">Faults</span>
-          </div>
-          <div className="mini-stat-value">{reports.filter(r => r.status === 'PENDING').length}</div>
-          <MiniTablePreview data={reports.filter(r => r.status === 'PENDING')} type="PENDING" />
-        </div>
-
-        <div className="mini-stat-card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveModal('IN_PROGRESS')}>
-          <div className="mini-stat-header">
-            <div className="mini-stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle></svg>
-            </div>
-            <span className="mini-stat-label">Pending</span>
-          </div>
-          <div className="mini-stat-value">{reports.filter(r => r.status === 'IN_PROGRESS').length}</div>
-          <MiniBarChart color="#f59e0b" />
-        </div>
-
-        <div className="mini-stat-card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveModal('RESOLVED')}>
-          <div className="mini-stat-header">
-            <div className="mini-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-            </div>
-            <span className="mini-stat-label">Today</span>
-          </div>
-          <div className="mini-stat-value">{reports.filter(r => r.status === 'RESOLVED').length}</div>
-          <MiniPieChart percentage={reports.length > 0 ? Math.round((reports.filter(r => r.status === 'RESOLVED').length / reports.length) * 100) : 0} color="#10b981" />
-        </div>
-      </div>
-
       {/* ── Main Grid ───────────────────────────────────── */}
       <div className="dashboard-grid" style={{ 
-        gridTemplateColumns: globeMode === 'map' ? '1fr' : '2fr 1fr',
+        gridTemplateColumns: globeMode === 'map' ? '1fr' : '3.4fr 0.75fr',
         flex: 1,
         minHeight: 0,
         overflow: 'hidden'
@@ -317,8 +217,8 @@ const Dashboard = () => {
             )}
             
             <div style={{
-              height: '100%',
-              minHeight: '200px',
+              height: globeMode === 'map' ? 'calc(100% - 64px)' : '100%',
+              minHeight: globeMode === 'map' ? '0' : '200px',
               transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
               width: '100%',
               position: 'relative',
@@ -335,83 +235,41 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Recent Fault Reports */}
-          <div className="panel" style={{ display: globeMode === 'map' ? 'none' : 'flex', maxHeight: '30%', flexShrink: 0, marginTop: 'auto' }}>
-            <div className="panel-header" style={{ marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <h3 className="panel-title">Recent Fault Reports</h3>
-                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', padding: '2px' }}>
-                  <button className="btn-sm" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>All</button>
-                  <button className="btn-sm" style={{ background: 'transparent', color: '#888', border: 'none', cursor: 'pointer' }}>Critical</button>
-                  <button className="btn-sm" style={{ background: 'transparent', color: '#888', border: 'none', cursor: 'pointer' }}>High</button>
-                  <button className="btn-sm" style={{ background: 'transparent', color: '#888', border: 'none', cursor: 'pointer' }}>Resolved</button>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <span style={{ cursor: 'pointer', color: '#888', fontSize: '0.8rem' }} onClick={() => navigate('/reports')}>View all →</span>
-                <div style={{ position: 'relative' }}>
-                  <button onClick={() => setShowOptions(!showOptions)} className="icon-btn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
-                  </button>
-                  {showOptions && (
-                    <>
-                      <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowOptions(false)} />
-                      <div className="dropdown-menu">
-                        <button onClick={() => { setShowOptions(false); setShowAddWP(!showAddWP); }} className="dropdown-item">+ Add Water Point</button>
-                        <button onClick={() => { setShowOptions(false); fetchData(); }} className="dropdown-item">⟳ Refresh Data</button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="table-wrapper">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Location</th>
-                    <th>Water Point</th>
-                    <th>Issue</th>
-                    <th>Severity</th>
-                    <th>Status</th>
-                    <th>Reported By</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentReports.length === 0 ? (
-                    <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No recent fault reports</td></tr>
-                  ) : recentReports.map(r => (
-                    <tr key={r.id} className="clickable-row" onClick={() => navigate('/reports')}>
-                      <td className="muted">{formatDate(r.created_at)}</td>
-                      <td>{r.water_point_code}</td>
-                      <td><strong>{r.water_point_code}</strong></td>
-                      <td>{FAULT_LABELS[r.fault_code] || r.fault_code}</td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: r.status === 'PENDING' ? '#ef4444' : '#f59e0b' }} />
-                          <span style={{ color: r.status === 'PENDING' ? '#ef4444' : '#f59e0b', fontSize: '0.8rem' }}>
-                            {r.status === 'PENDING' ? 'Critical' : 'High'}
-                          </span>
-                        </div>
-                      </td>
-                      <td><span className={`status-badge status-${r.status?.toLowerCase()}`}>{r.status?.replace('_', ' ')}</span></td>
-                      <td className="muted">{r.sender_number}</td>
-                      <td>
-                        <button className="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         {/* Right Column */}
         <div className="right-column" style={{ display: globeMode === 'map' ? 'none' : 'flex', height: '100%', overflowY: 'auto', paddingRight: '0.5rem' }}>
+          <div className="four-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+            <div className="mini-stat-card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveModal('PENDING')}>
+              <div className="mini-stat-header">
+                <div className="mini-stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                </div>
+                <span className="mini-stat-label">Active Faults</span>
+              </div>
+              <div className="mini-stat-value">{reports.filter(r => r.status === 'PENDING').length}</div>
+            </div>
+
+            <div className="mini-stat-card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveModal('IN_PROGRESS')}>
+              <div className="mini-stat-header">
+                <div className="mini-stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle></svg>
+                </div>
+                <span className="mini-stat-label">In Progress</span>
+              </div>
+              <div className="mini-stat-value">{reports.filter(r => r.status === 'IN_PROGRESS').length}</div>
+            </div>
+
+            <div className="mini-stat-card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveModal('TOTAL')}>
+              <div className="mini-stat-header">
+                <div className="mini-stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+                </div>
+                <span className="mini-stat-label">Water Points</span>
+              </div>
+              <div className="mini-stat-value">{waterPoints.length}</div>
+            </div>
+          </div>
           
           {/* Active Alerts */}
           <div className="panel">
@@ -441,42 +299,26 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Assigned Technicians */}
+          {/* Repair Queue */}
           <div className="panel">
-            <div className="panel-header">
-              <h3 className="panel-title">Assigned Technicians</h3>
-              <span style={{ cursor: 'pointer', color: '#888', fontSize: '0.8rem' }} onClick={() => navigate('/technicians')}>View all →</span>
+            <div className="panel-header" style={{ marginBottom: '0.75rem' }}>
+              <h3 className="panel-title">Repair Queue</h3>
+              <span style={{ cursor: 'pointer', color: '#888', fontSize: '0.8rem' }} onClick={() => navigate('/reports')}>View all →</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-              {[
-                { name: 'Tendai Moyo', zone: 'Harare Zone', status: 'On Duty', color: '#10b981', img: 'https://i.pravatar.cc/150?img=11' },
-                { name: 'Blessing Ndlovu', zone: 'Epworth Zone', status: 'On Site', color: '#10b981', img: 'https://i.pravatar.cc/150?img=12' },
-                { name: 'Farai Chikore', zone: 'Glen View Zone', status: 'On Break', color: '#f59e0b', img: 'https://i.pravatar.cc/150?img=33' },
-                { name: 'Tinashe Zimunya', zone: 'Waterfalls Zone', status: 'On Duty', color: '#10b981', img: 'https://i.pravatar.cc/150?img=14' },
-              ].map((tech, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: i < 3 ? '1px solid var(--card-border)' : 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <img src={tech.img} alt={tech.name} style={{ width: 32, height: 32, borderRadius: '50%' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 500 }}>{tech.name}</span>
-                      <span style={{ fontSize: '0.7rem', color: '#888' }}>{tech.zone}</span>
-                    </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1rem' }}>
+              {inProgressReports.length === 0 ? (
+                <div style={{ color: '#888', fontSize: '0.85rem' }}>No in-progress repairs</div>
+              ) : inProgressReports.map((report) => (
+                <button key={report.id} className="fault-card-item" onClick={() => navigate('/reports')}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                    <span className="status-badge status-in_progress">IN PROGRESS</span>
+                    <span style={{ color: '#aaa', fontSize: '0.72rem' }}>{report.water_point_code}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: tech.color }} />
-                    <span style={{ fontSize: '0.75rem', color: '#aaa' }}>{tech.status}</span>
-                  </div>
-                </div>
+                  <div style={{ marginTop: '0.4rem', fontSize: '0.82rem', color: '#fff' }}>{FAULT_LABELS[report.fault_code] || report.fault_code}</div>
+                </button>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--card-border)' }}>
-                <span style={{ fontSize: '0.8rem', color: '#888' }}>Total Technicians</span>
-                <span style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>12</span>
-              </div>
             </div>
-          </div>
 
-          {/* Quick Actions */}
-          <div className="panel">
             <h3 className="panel-title" style={{ marginBottom: '1rem' }}>Quick Actions</h3>
             <div className="quick-actions-grid">
               <div className="quick-action-btn" onClick={() => setShowAddWP(true)}>
@@ -494,14 +336,6 @@ const Dashboard = () => {
               <div className="quick-action-btn" onClick={() => navigate('/waterpoints')}>
                 <svg className="quick-action-icon" style={{ color: '#a3e635' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><map name="map"></map><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
                 <span className="quick-action-label">View Full Map</span>
-              </div>
-              <div className="quick-action-btn" onClick={() => navigate('/reports')}>
-                <svg className="quick-action-icon" style={{ color: '#ef4444' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                <span className="quick-action-label">Generate Report</span>
-              </div>
-              <div className="quick-action-btn" onClick={() => navigate('/settings')}>
-                <svg className="quick-action-icon" style={{ color: '#8b5cf6' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                <span className="quick-action-label">Manage Users</span>
               </div>
             </div>
           </div>
