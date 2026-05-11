@@ -1,4 +1,7 @@
+import uuid
+
 from django.db import models
+
 
 class Technician(models.Model):
     name = models.CharField(max_length=100)
@@ -6,6 +9,7 @@ class Technician(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     is_available = models.BooleanField(default=True)
+    field_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

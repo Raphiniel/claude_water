@@ -642,41 +642,71 @@ body {
 .stat-card-clickable:hover .stat-cta { opacity: 1; }
 
 /* ── Buttons ─────────────────────────────────────────── */
+/* Accessible primary actions (brand lime on dark UI) */
 .btn-primary {
   background: var(--primary);
   color: #0d0d0d;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  border: none;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.35rem;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   font-size: 0.9rem;
   font-weight: 700;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s, border-color 0.15s;
   margin-top: 0.5rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: center;
+  gap: 0.45rem;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset;
 }
 
-.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(132,204,22,0.4); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(163, 230, 53, 0.35);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 
 .btn-secondary {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text-main);
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+  min-height: 2.5rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 10px;
   border: 1px solid var(--card-border);
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: center;
+  gap: 0.45rem;
 }
 
-.btn-secondary:hover { background: rgba(255,255,255,0.09); border-color: rgba(163,230,53,0.25); }
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(163, 230, 53, 0.35);
+}
+
+.btn-secondary:focus-visible {
+  outline: 2px solid rgba(163, 230, 53, 0.6);
+  outline-offset: 2px;
+}
 
 .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.8rem; }
 
@@ -977,6 +1007,52 @@ body {
 .login-form { display: flex; flex-direction: column; gap: 1.25rem; }
 
 .header { text-align: center; margin-bottom: 2rem; }
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1.75rem;
+  text-align: center;
+}
+
+.login-brand-mark {
+  display: block;
+  flex-shrink: 0;
+}
+
+.login-brand-wordmark {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.login-brand-tagline {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.sidebar-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.sidebar-brand-mark {
+  flex-shrink: 0;
+  display: block;
+}
+
+.sidebar-brand-wordmark {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
 
 .header h1 {
   font-size: 2rem;

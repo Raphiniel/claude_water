@@ -72,16 +72,16 @@ def _delete_session(session: GatewaySmsSession) -> None:
 
 
 def _build_wp_list_message(session: GatewaySmsSession) -> str:
-    all_wps = list(WaterPoint.objects.order_by("code"))
-    if not all_wps:
+    qs = WaterPoint.objects.order_by("code").only("code", "location")
+    total = qs.count()
+    if total == 0:
         return "WaterWise: No water points in the system yet. Ask an admin to add sites."
 
-    total = len(all_wps)
     total_pages = max(1, (total + WP_PAGE_SIZE - 1) // WP_PAGE_SIZE)
     page = min(session.wp_page, total_pages - 1)
     session.wp_page = page
     start = page * WP_PAGE_SIZE
-    chunk = all_wps[start : start + WP_PAGE_SIZE]
+    chunk = list(qs[start : start + WP_PAGE_SIZE])
 
     lines = []
     for i, wp in enumerate(chunk, start=1):

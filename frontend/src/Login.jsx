@@ -24,7 +24,12 @@ const Login = () => {
         password
       });
 
-      login(response.data.access, response.data.refresh);
+      try {
+        await login(response.data.access, response.data.refresh);
+      } catch {
+        setError('Could not load your profile (/api/me/). Check server version.');
+        return;
+      }
       navigate('/');
     } catch (err) {
       if (err.response?.status === 401) {
@@ -40,9 +45,24 @@ const Login = () => {
   return (
     <div className="login-container">
       <div className="glass-panel login-panel">
-        <div className="header" style={{ marginBottom: '2rem' }}>
-          <h1 style={{fontSize: '2.5rem'}}>Waterwise</h1>
-          <p>Admin Portal Login</p>
+        <div className="login-brand">
+          <img
+            className="login-brand-mark"
+            src="/logo-mark.svg"
+            alt=""
+            width={56}
+            height={64}
+            decoding="async"
+          />
+          <img
+            className="login-brand-wordmark"
+            src="/logo-wordmark.svg"
+            alt="WaterWise"
+            width={200}
+            height={40}
+            decoding="async"
+          />
+          <p className="login-brand-tagline">Admin portal</p>
         </div>
         
         {error && <div className="error-message">{error}</div>}

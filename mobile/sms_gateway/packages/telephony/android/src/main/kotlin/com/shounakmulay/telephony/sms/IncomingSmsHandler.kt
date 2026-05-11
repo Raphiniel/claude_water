@@ -11,6 +11,7 @@ import android.os.Looper
 import android.os.PowerManager
 import android.os.Process
 import android.provider.Telephony
+import android.util.Log
 import android.telephony.SmsMessage
 import android.telephony.SubscriptionManager
 import com.shounakmulay.telephony.utils.Constants
@@ -124,10 +125,12 @@ class IncomingSmsReceiver : BroadcastReceiver() {
         if (subscriptionId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
             messageMap[SUBSCRIPTION_ID] = subscriptionId.toString()
         }
-        if (IncomingSmsHandler.isApplicationForeground(context)) {
+        if (IncomingSmsHandler.isApplicationForeground(context) &&
+            foregroundSmsChannel != null
+        ) {
             val args = HashMap<String, Any>()
             args[MESSAGE] = messageMap
-            foregroundSmsChannel?.invokeMethod(ON_MESSAGE, args)
+            foregroundSmsChannel!!.invokeMethod(ON_MESSAGE, args)
         } else {
             val preferences =
                 context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
@@ -147,6 +150,14 @@ class IncomingSmsReceiver : BroadcastReceiver() {
                     context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
                 val backgroundCallbackHandle =
                     preferences.getLong(SHARED_PREFS_BACKGROUND_SETUP_HANDLE, 0)
+                if (backgroundCallbackHandle == 0L) {
+                    Log.w(
+                        "WaterWiseSmsReceiver",
+                        "SMS received but background relay is not registered. " +
+                            "Open the WaterWise app once after install or reboot so it can save relay settings.",
+                    )
+                    return
+                }
                 startBackgroundIsolate(context, backgroundCallbackHandle)
                 backgroundMessageQueue.add(sms)
             } else {

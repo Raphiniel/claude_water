@@ -16,6 +16,7 @@ const IconBell = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="non
 const IconSms = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
 const IconAnalytics = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
 const IconHelp = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+const IconUsers = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
 const IconMap = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><map name="map"></map><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>;
 
 const FAULT_LABELS = {
@@ -87,7 +88,9 @@ const Layout = ({ children }) => {
     { name: 'SMS Broadcast', path: '/sms' },
     { name: 'System Analytics', path: '/analytics' },
     { name: 'Settings & Users', path: '/settings' },
+    ...(user?.is_staff ? [{ name: 'User accounts (staff)', path: '/users' }] : []),
     { name: 'Help & documentation', path: '/help' },
+    { name: 'Technician field portal (GPS / jobs)', path: '/field' },
   ];
   
   const filteredSearch = searchItems.filter(item => 
@@ -151,18 +154,31 @@ const Layout = ({ children }) => {
     { to: '/sms', label: 'SMS Alerts', icon: <IconSms /> },
     { to: '/analytics', label: 'Analytics', icon: <IconAnalytics /> },
     { to: '/settings', label: 'Settings', icon: <IconSettings /> },
+    ...(user?.is_staff ? [{ to: '/users', label: 'User accounts', icon: <IconUsers /> }] : []),
   ];
 
   return (
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: 28, height: 28, background: '#a3e635', borderRadius: '50%', borderBottomRightRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ width: 10, height: 10, background: '#0d0d0d', borderRadius: '50%' }} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span className="brand-name" style={{ color: '#fff', fontSize: '1.1rem' }}>Waterwise</span>
+          <div className="sidebar-brand-row">
+            <img
+              className="sidebar-brand-mark"
+              src="/logo-mark.svg"
+              alt=""
+              width={36}
+              height={42}
+              decoding="async"
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <img
+                className="sidebar-brand-wordmark"
+                src="/logo-wordmark.svg"
+                alt="WaterWise"
+                width={140}
+                height={26}
+                decoding="async"
+              />
               <span className="brand-sub">ADMIN PORTAL</span>
             </div>
           </div>
@@ -361,8 +377,10 @@ const Layout = ({ children }) => {
                   {user?.username?.charAt(0).toUpperCase() || 'A'}
                 </div>
                 <div className="user-meta">
-                  <span className="user-name">Administrator</span>
-                  <span className="user-role">Super Admin</span>
+                  <span className="user-name">{user?.username || 'Signed in'}</span>
+                  <span className="user-role">
+                    {user?.is_superuser ? 'Superuser' : user?.is_staff ? 'Staff' : 'User'}
+                  </span>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </div>
@@ -373,7 +391,9 @@ const Layout = ({ children }) => {
                   <div className="dropdown-menu" style={{ right: 0, left: 'auto', width: '220px', padding: '0.5rem', marginTop: '0.5rem' }}>
                     <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--card-border)', marginBottom: '0.5rem' }}>
                       <span style={{ display: 'block', fontWeight: 600, color: '#fff', fontSize: '0.85rem' }}>{user?.username || 'Administrator'}</span>
-                      <span style={{ display: 'block', color: '#888', fontSize: '0.75rem' }}>admin@waterwise.gov.zw</span>
+                      <span style={{ display: 'block', color: '#888', fontSize: '0.75rem' }}>
+                        {user?.email || '—'}
+                      </span>
                     </div>
                     
                     <button className="dropdown-item" onClick={() => { setShowProfileMenu(false); navigate('/settings'); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

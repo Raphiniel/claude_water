@@ -14,6 +14,8 @@ import Sms from './Sms';
 import Analytics from './Analytics';
 import ProjectMap from './ProjectMap';
 import Help from './Help';
+import TechnicianField from './TechnicianField';
+import Users from './Users';
 import { API_BASE as API } from './apiConfig';
 
 const FAULT_LABELS = {
@@ -397,12 +399,14 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/field" element={<TechnicianField />} />
           <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
           <Route path="/waterpoints" element={<ProtectedRoute><Layout><WaterPoints /></Layout></ProtectedRoute>} />
           <Route path="/map" element={<ProtectedRoute><Layout><ProjectMap /></Layout></ProtectedRoute>} />
           <Route path="/technicians" element={<ProtectedRoute><Layout><Technicians /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute><Layout><Users /></Layout></ProtectedRoute>} />
           <Route path="/sms" element={<ProtectedRoute><Layout><Sms /></Layout></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Layout><Analytics /></Layout></ProtectedRoute>} />
           <Route path="/help" element={<ProtectedRoute><Layout><Help /></Layout></ProtectedRoute>} />

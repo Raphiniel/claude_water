@@ -5,7 +5,7 @@ import { API_BASE } from './apiConfig';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser]       = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // ── Token refresh ──────────────────────────────────────────────────────────
@@ -19,9 +19,15 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('access_token', newAccess);
       return newAccess;
     } catch {
-      // Refresh token is also expired — full logout
       return null;
     }
+  }, []);
+
+  const fetchMe = useCallback(async (accessToken) => {
+    const res = await axios.get(`${API_BASE}/api/me/`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return res.data;
   }, []);
 
   // ── Hard logout (clears storage + state) ──────────────────────────────────
@@ -35,24 +41,29 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const init = async () => {
       const token = localStorage.getItem('access_token');
-      if (!token) { setLoading(false); return; }
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-      // Quick check: try hitting a protected endpoint with the stored token
       try {
-        await axios.get(`${API_BASE}/api/waterpoints/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUser({ token });
+        const me = await fetchMe(token);
+        setUser({ token, ...me });
       } catch (err) {
         if (err.response?.status === 401) {
-          // Token is invalid/expired — try a silent refresh
           const fresh = await refreshAccessToken();
           if (fresh) {
-            setUser({ token: fresh });
+            try {
+              const me = await fetchMe(fresh);
+              setUser({ token: fresh, ...me });
+            } catch {
+              logout();
+            }
           } else {
-            // Both tokens are dead — clear everything
             logout();
           }
+        } else {
+          logout();
         }
       } finally {
         setLoading(false);
@@ -60,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     init();
-  }, [refreshAccessToken, logout]);
+  }, [fetchMe, refreshAccessToken, logout]);
 
   // ── Axios response interceptor: auto-refresh on any 401 ───────────────────
   useEffect(() => {
@@ -69,12 +80,10 @@ export const AuthProvider = ({ children }) => {
       async (error) => {
         const originalRequest = error.config;
         const url = String(originalRequest?.url || '');
-        // Never attach refresh logic to auth endpoints — a failed refresh/login would recurse forever
         const isAuthRequest =
           url.includes('/api/token/refresh/') ||
           (url.includes('/api/token/') && String(originalRequest?.method || '').toLowerCase() === 'post');
 
-        // Only retry once (avoid infinite loops)
         if (
           error.response?.status === 401 &&
           !originalRequest._retry &&
@@ -83,8 +92,13 @@ export const AuthProvider = ({ children }) => {
           originalRequest._retry = true;
           const fresh = await refreshAccessToken();
           if (fresh) {
-            originalRequest.headers['Authorization'] = `Bearer ${fresh}`;
-            setUser({ token: fresh });
+            originalRequest.headers.Authorization = `Bearer ${fresh}`;
+            try {
+              const me = await fetchMe(fresh);
+              setUser({ token: fresh, ...me });
+            } catch {
+              setUser({ token: fresh });
+            }
             return axios(originalRequest);
           }
           logout();
@@ -94,14 +108,18 @@ export const AuthProvider = ({ children }) => {
     );
 
     return () => axios.interceptors.response.eject(interceptor);
-  }, [refreshAccessToken, logout]);
+  }, [fetchMe, refreshAccessToken, logout]);
 
-  // ── Login ──────────────────────────────────────────────────────────────────
-  const login = useCallback((access, refresh) => {
-    localStorage.setItem('access_token', access);
-    localStorage.setItem('refresh_token', refresh);
-    setUser({ token: access });
-  }, []);
+  // ── Login (stores tokens + profile from /api/me/) ─────────────────────────
+  const login = useCallback(
+    async (access, refresh) => {
+      const me = await fetchMe(access);
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+      setUser({ token: access, ...me });
+    },
+    [fetchMe],
+  );
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>

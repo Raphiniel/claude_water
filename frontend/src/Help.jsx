@@ -55,6 +55,14 @@ const Help = () => (
     </div>
 
     <section className="glass-panel" style={{ marginBottom: '1.5rem' }}>
+      <h3>AI chat in your editor feels slow?</h3>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+        Assistants such as Cursor chat are run by the editor vendor and model you pick — not this WaterWise app.
+        For snappier replies, try a faster model tier, a shorter context (fewer open huge files), and a stable network.
+      </p>
+    </section>
+
+    <section className="glass-panel" style={{ marginBottom: '1.5rem' }}>
       <h3>Configuration</h3>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
         This browser app talks to the API at <code style={{ color: 'var(--primary)' }}>{API_BASE}</code>.

@@ -1,6 +1,6 @@
 import logging
-import uuid
 import math
+import uuid as uuid_mod
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -65,7 +65,7 @@ def get_nearest_available_technician(water_point):
         return None
     technicians = Technician.objects.filter(
         is_available=True, latitude__isnull=False, longitude__isnull=False
-    )
+    ).only("id", "name", "phone", "latitude", "longitude", "is_available")
     if not technicians.exists():
         return None
     return min(
@@ -96,6 +96,22 @@ def get_nearest_technicians(water_point, *, available_only=False, limit=5):
     ]
     ranked.sort(key=lambda pair: pair[1])
     return ranked[:limit]
+
+
+def try_auto_assign_nearest(report):
+    """
+    If the water point has coordinates, assign the nearest available technician
+    and set status to IN_PROGRESS. Returns True if an assignment was made.
+    """
+    if report.assigned_to_id or report.status != "PENDING":
+        return False
+    nearest = get_nearest_available_technician(report.water_point)
+    if not nearest:
+        return False
+    report.assigned_to = nearest
+    report.status = "IN_PROGRESS"
+    report.save(update_fields=["assigned_to", "status"])
+    return True
 
 
 def _is_device_gateway_request(request):
@@ -156,8 +172,8 @@ class SMSWebhookView(APIView):
 
             if validation_result['is_valid']:
                 wp = WaterPoint.objects.get(code=validation_result['parsed']['wp_code'])
-                ticket = f"WP{uuid.uuid4().hex[:6].upper()}"
-                FaultReport.objects.create(
+                ticket = f"WP{uuid_mod.uuid4().hex[:6].upper()}"
+                report = FaultReport.objects.create(
                     water_point=wp,
                     fault_code=validation_result['parsed']['fault_code'],
                     sender_number=sender_number,
@@ -165,25 +181,42 @@ class SMSWebhookView(APIView):
                     ticket_number=ticket,
                     status='PENDING',
                 )
+                try_auto_assign_nearest(report)
 
                 if gateway:
-                    outbound = (
-                        f"Fault recorded. Ticket {ticket} for {wp.code}. "
-                        "Your report is flagged for admin assignment."
-                    )
+                    if report.assigned_to:
+                        tech = report.assigned_to
+                        outbound = (
+                            f"Fault recorded. Ticket {ticket} for {wp.code}. "
+                            f"Technician {tech.name} ({tech.phone}) has been assigned."
+                        )
+                        tech_name = tech.name
+                        tech_phone = tech.phone
+                    else:
+                        outbound = (
+                            f"Fault recorded. Ticket {ticket} for {wp.code}. "
+                            "Your report is flagged for admin assignment."
+                        )
+                        tech_name = None
+                        tech_phone = None
                     logger.info("Gateway SMS ticket %s for %s", ticket, sender_number)
                     return Response(
                         {
                             "status": "ok",
                             "ticket_number": ticket,
                             "water_point_code": wp.code,
-                            "technician_name": None,
-                            "technician_phone": None,
+                            "technician_name": tech_name,
+                            "technician_phone": tech_phone,
                             "outbound_sms": outbound,
                         }
                     )
 
-                send_confirmation_sms(sender_number, ticket, wp.code)
+                send_confirmation_sms(
+                    sender_number,
+                    ticket,
+                    wp.code,
+                    technician_name=report.assigned_to.name if report.assigned_to else None,
+                )
                 logger.info("Report saved, ticket %s for %s", ticket, sender_number)
             elif gateway:
                 return Response(handle_gateway_sms_dialog(sender_number, message_text))
@@ -222,6 +255,79 @@ class FaultReportListView(generics.ListAPIView):
         if status_filter:
             queryset = queryset.filter(status=status_filter.upper())
         return queryset
+
+
+class FaultReportDetailView(generics.RetrieveAPIView):
+    serializer_class = FaultReportSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return FaultReport.objects.select_related('water_point', 'assigned_to').all()
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def field_update_position(request):
+    """Technician handset: update GPS using secret field_token (no admin JWT)."""
+    token = str(request.data.get('token', '')).strip()
+    lat = request.data.get('latitude')
+    lng = request.data.get('longitude')
+    if not token:
+        return Response({'error': 'token is required'}, status=status.HTTP_400_BAD_REQUEST)
+    if lat is None or lng is None:
+        return Response({'error': 'latitude and longitude are required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        uid = uuid_mod.UUID(token)
+        tech = Technician.objects.get(field_token=uid)
+    except (Technician.DoesNotExist, ValueError, TypeError, AttributeError):
+        return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        tech.latitude = round(float(lat), 6)
+        tech.longitude = round(float(lng), 6)
+    except (TypeError, ValueError):
+        return Response({'error': 'Invalid coordinates'}, status=status.HTTP_400_BAD_REQUEST)
+    tech.save(update_fields=['latitude', 'longitude'])
+    return Response({'ok': True, 'name': tech.name})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def field_my_jobs(request):
+    """Open jobs assigned to this technician (token auth)."""
+    token = str(request.query_params.get('token', '')).strip()
+    if not token:
+        return Response({'error': 'token is required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        uid = uuid_mod.UUID(token)
+        tech = Technician.objects.get(field_token=uid)
+    except (Technician.DoesNotExist, ValueError, TypeError, AttributeError):
+        return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
+
+    qs = (
+        FaultReport.objects.filter(assigned_to=tech)
+        .exclude(status='RESOLVED')
+        .select_related('water_point')
+        .order_by('-created_at')[:25]
+    )
+    out = []
+    for r in qs:
+        wp = r.water_point
+        out.append(
+            {
+                'id': r.id,
+                'ticket_number': r.ticket_number,
+                'status': r.status,
+                'fault_code': r.fault_code,
+                'raw_message': r.raw_message,
+                'sender_number': r.sender_number,
+                'created_at': r.created_at,
+                'water_point_code': wp.code,
+                'water_point_location': wp.location,
+                'latitude': str(wp.latitude) if wp.latitude is not None else None,
+                'longitude': str(wp.longitude) if wp.longitude is not None else None,
+            }
+        )
+    return Response({'technician': {'id': tech.id, 'name': tech.name}, 'jobs': out})
 
 
 @api_view(['POST'])

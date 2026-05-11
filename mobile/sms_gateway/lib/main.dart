@@ -8,6 +8,12 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:telephony/telephony.dart';
 
+import 'app_models.dart';
+import 'auth_storage.dart';
+import 'field_portal_tab.dart';
+import 'brand_assets.dart';
+import 'login_screen.dart';
+
 /// User-facing product name (launcher, app bar).
 const String kAppName = 'WaterWise API';
 
@@ -126,69 +132,121 @@ void main() {
   runApp(const WaterWiseApp());
 }
 
-class WaterWiseApp extends StatelessWidget {
+ThemeData _buildAppTheme() {
+  const brandLime = Color(0xFFA3E635);
+  final base = ColorScheme.fromSeed(
+    seedColor: brandLime,
+    brightness: Brightness.light,
+    primary: brandLime,
+    secondary: const Color(0xFF84CC16),
+    surface: const Color(0xFFF7FAF0),
+  );
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: base,
+    appBarTheme: AppBarTheme(
+      centerTitle: false,
+      elevation: 0,
+      scrolledUnderElevation: 0.5,
+      backgroundColor: base.surface,
+      foregroundColor: base.onSurface,
+      titleTextStyle: TextStyle(
+        color: base.onSurface,
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.3,
+      ),
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      margin: EdgeInsets.zero,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: base.surface,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: base.outlineVariant),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: base.primary, width: 2),
+      ),
+    ),
+    listTileTheme: ListTileThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+  );
+}
+
+class WaterWiseApp extends StatefulWidget {
   const WaterWiseApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final base = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF0369A1),
-      brightness: Brightness.light,
-      primary: const Color(0xFF0369A1),
-      secondary: const Color(0xFF0EA5E9),
-      surface: const Color(0xFFF0F9FF),
-    );
+  State<WaterWiseApp> createState() => _WaterWiseAppState();
+}
 
+class _WaterWiseAppState extends State<WaterWiseApp> {
+  bool _booting = true;
+  AppSession? _session;
+
+  @override
+  void initState() {
+    super.initState();
+    _restore();
+  }
+
+  Future<void> _restore() async {
+    final s = await AuthStorage().tryRestoreSession();
+    if (!mounted) return;
+    setState(() {
+      _session = s;
+      _booting = false;
+    });
+  }
+
+  Future<void> _handleLogout() async {
+    await AuthStorage().clearSession();
+    if (!mounted) return;
+    setState(() => _session = null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: kAppName,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: base,
-        appBarTheme: AppBarTheme(
-          centerTitle: false,
-          elevation: 0,
-          scrolledUnderElevation: 0.5,
-          backgroundColor: base.surface,
-          foregroundColor: base.onSurface,
-          titleTextStyle: TextStyle(
-            color: base.onSurface,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-          ),
-        ),
-        cardTheme: CardThemeData(
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          color: Colors.white,
-          surfaceTintColor: Colors.transparent,
-          margin: EdgeInsets.zero,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: base.surface,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: base.outlineVariant),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: base.primary, width: 2),
-          ),
-        ),
-        listTileTheme: ListTileThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
-      home: const GatewayHomePage(),
+      theme: _buildAppTheme(),
+      home: _booting
+          ? const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            )
+          : _session == null
+              ? LoginScreen(
+                  onSuccess: (s) => setState(() => _session = s),
+                )
+              : GatewayHomePage(
+                  session: _session!,
+                  onLogout: _handleLogout,
+                ),
     );
   }
 }
 
 class GatewayHomePage extends StatefulWidget {
-  const GatewayHomePage({super.key});
+  const GatewayHomePage({
+    super.key,
+    required this.session,
+    required this.onLogout,
+  });
+
+  final AppSession session;
+  final Future<void> Function() onLogout;
 
   @override
   State<GatewayHomePage> createState() => _GatewayHomePageState();
@@ -205,6 +263,9 @@ class _GatewayHomePageState extends State<GatewayHomePage>
   bool _listenerReady = false;
   String _permLine = 'Tap the button below to grant SMS access.';
   String _batteryLine = '';
+
+  /// 0 = SMS relay, 1 = technician field / Maps routing.
+  int _mainTab = 0;
 
   final List<String> _log = [];
 
@@ -376,6 +437,7 @@ class _GatewayHomePageState extends State<GatewayHomePage>
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final staff = widget.session.isStaff;
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -384,9 +446,15 @@ class _GatewayHomePageState extends State<GatewayHomePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(kAppName),
             Text(
-              'SMS gateway',
+              staff
+                  ? (_mainTab == 0 ? kAppName : 'Field technician')
+                  : 'Field technician',
+            ),
+            Text(
+              staff
+                  ? (_mainTab == 0 ? 'SMS gateway' : 'Jobs & Google Maps routing')
+                  : 'Signed in as ${widget.session.username}',
               style: textTheme.labelMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
@@ -395,26 +463,54 @@ class _GatewayHomePageState extends State<GatewayHomePage>
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Save settings',
-            onPressed: () async {
-              await _persist();
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+          if (staff && _mainTab == 0)
+            IconButton(
+              tooltip: 'Save settings',
+              onPressed: () async {
+                await _persist();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    content: const Text('Settings saved'),
                   ),
-                  content: const Text('Settings saved'),
-                ),
-              );
+                );
+              },
+              icon: const Icon(Icons.save_rounded),
+            ),
+          PopupMenuButton<String>(
+            tooltip: 'Account',
+            onSelected: (value) async {
+              if (value == 'logout') {
+                await widget.onLogout();
+              }
             },
-            icon: const Icon(Icons.save_rounded),
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                enabled: false,
+                child: Text(
+                  widget.session.username,
+                  style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Text('Sign out'),
+              ),
+            ],
           ),
         ],
       ),
-      body: ListView(
+      body: staff
+          ? Column(
+              children: [
+                Expanded(
+                  child: _mainTab == 0
+                      ? ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
           _HeroCard(scheme: scheme, textTheme: textTheme),
@@ -474,7 +570,9 @@ class _GatewayHomePageState extends State<GatewayHomePage>
                   'For best results grant SMS + unrestricted battery above, open this app once after reboot, '
                   'and on Xiaomi / Oppo / Vivo enable autostart for this app in system settings. '
                   'Dual-SIM: replies use the same SIM that received each message; if texts still fail, '
-                  'pick a default SMS SIM in Android settings.',
+                  'pick a default SMS SIM in Android settings. '
+                  'Do not “Force stop” this app — Android disables SMS until you open it again. '
+                  'After a reboot, open the app once so background relay re-registers.',
                   style: textTheme.bodySmall?.copyWith(
                     color: scheme.outline,
                     height: 1.35,
@@ -593,7 +691,28 @@ class _GatewayHomePageState extends State<GatewayHomePage>
                   ),
           ),
         ],
-      ),
+                )
+                : const FieldPortalTab(),
+                ),
+                NavigationBar(
+                  selectedIndex: _mainTab,
+                  onDestinationSelected: (i) => setState(() => _mainTab = i),
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.sms_outlined),
+                      selectedIcon: Icon(Icons.sms_rounded),
+                      label: 'SMS relay',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.navigation_outlined),
+                      selectedIcon: Icon(Icons.navigation_rounded),
+                      label: 'Field & maps',
+                    ),
+                  ],
+                ),
+              ],
+            )
+          : const FieldPortalTab(),
     );
   }
 }
@@ -615,8 +734,8 @@ class _HeroCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             scheme.primary,
-            scheme.primary.withValues(alpha: 0.85),
-            const Color(0xFF0284C7),
+            scheme.primary.withValues(alpha: 0.88),
+            const Color(0xFF4D7C0F),
           ],
         ),
         boxShadow: [
@@ -630,12 +749,19 @@ class _HeroCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            child: Icon(Icons.water_drop_rounded, color: scheme.onPrimary, size: 32),
+            child: const BrandLogoMark(height: 36),
           ),
           const SizedBox(width: 16),
           Expanded(

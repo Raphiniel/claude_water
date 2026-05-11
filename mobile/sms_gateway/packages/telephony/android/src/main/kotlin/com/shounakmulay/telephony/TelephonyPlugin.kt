@@ -25,6 +25,8 @@ class TelephonyPlugin : FlutterPlugin, ActivityAware {
 
   private lateinit var permissionsController: PermissionsController
 
+  private var activityBinding: ActivityPluginBinding? = null
+
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     if (!this::binaryMessenger.isInitialized) {
       binaryMessenger = flutterPluginBinding.binaryMessenger
@@ -34,11 +36,21 @@ class TelephonyPlugin : FlutterPlugin, ActivityAware {
   }
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-    tearDownPlugin()
+    activityBinding?.removeRequestPermissionsResultListener(smsMethodCallHandler)
+    activityBinding = null
+    smsMethodCallHandler.clearActivity()
+    IncomingSmsReceiver.foregroundSmsChannel = null
+    smsChannel.setMethodCallHandler(null)
   }
 
   override fun onDetachedFromActivity() {
-    tearDownPlugin()
+    // Only clear activity wiring. Keep the MethodChannel handler alive so Dart can call
+    // startBackgroundService again after resume; tearing the handler here broke SMS when
+    // the app was backgrounded or the screen was locked (background isolate + prefs handles).
+    IncomingSmsReceiver.foregroundSmsChannel = null
+    activityBinding?.removeRequestPermissionsResultListener(smsMethodCallHandler)
+    activityBinding = null
+    smsMethodCallHandler.clearActivity()
   }
 
   override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
@@ -46,6 +58,7 @@ class TelephonyPlugin : FlutterPlugin, ActivityAware {
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+    activityBinding = binding
     IncomingSmsReceiver.foregroundSmsChannel = smsChannel
     smsMethodCallHandler.setActivity(binding.activity)
     binding.addRequestPermissionsResultListener(smsMethodCallHandler)
@@ -63,11 +76,6 @@ class TelephonyPlugin : FlutterPlugin, ActivityAware {
     smsChannel = MethodChannel(messenger, CHANNEL_SMS)
     smsChannel.setMethodCallHandler(smsMethodCallHandler)
     smsMethodCallHandler.setForegroundChannel(smsChannel)
-  }
-
-  private fun tearDownPlugin() {
-    IncomingSmsReceiver.foregroundSmsChannel = null
-    smsChannel.setMethodCallHandler(null)
   }
 
 }

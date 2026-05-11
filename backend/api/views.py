@@ -1,14 +1,65 @@
 import logging
+from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from .models import FaultReport, SystemSetting
-from .serializers import FaultReportSerializer, SystemSettingSerializer, PasswordChangeSerializer
+from .serializers import (
+    FaultReportSerializer,
+    SystemSettingSerializer,
+    PasswordChangeSerializer,
+    UserAccountSerializer,
+    AdminUserCreateSerializer,
+)
 from gateway.sms_service import send_outbound_sms
 
 logger = logging.getLogger(__name__)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def current_user_profile(request):
+    """Who am I (for web + mobile after JWT login)."""
+    u = request.user
+    return Response(
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email or "",
+            "is_staff": bool(u.is_staff),
+            "is_superuser": bool(u.is_superuser),
+        }
+    )
+
+
+class UserAccountViewSet(viewsets.ModelViewSet):
+    """Django user accounts — staff-only (Django admin–style access)."""
+
+    queryset = User.objects.all().order_by("username")
+    permission_classes = [IsAdminUser]
+    http_method_names = ["get", "post", "delete", "head", "options"]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return AdminUserCreateSerializer
+        return UserAccountSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        target = self.get_object()
+        if target.id == request.user.id:
+            return Response(
+                {"detail": "You cannot delete your own account."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if target.is_superuser and not request.user.is_superuser:
+            return Response(
+                {"detail": "Only a superuser can delete another superuser account."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().destroy(request, *args, **kwargs)
+
 
 class FaultReportViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]

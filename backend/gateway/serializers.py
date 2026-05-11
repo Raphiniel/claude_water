@@ -4,7 +4,11 @@ from .models import WaterPoint, FaultReport, SyncBuffer, Technician
 class TechnicianSerializer(serializers.ModelSerializer):
     class Meta:
         model = Technician
-        fields = ['id', 'name', 'phone', 'latitude', 'longitude', 'is_available', 'created_at']
+        fields = [
+            'id', 'name', 'phone', 'latitude', 'longitude', 'is_available',
+            'field_token', 'created_at',
+        ]
+        read_only_fields = ['field_token', 'created_at']
 
 class WaterPointSerializer(serializers.ModelSerializer):
     class Meta:

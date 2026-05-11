@@ -58,7 +58,7 @@ class SmsMethodCallHandler(
   private lateinit var result: MethodChannel.Result
   private lateinit var action: SmsAction
   private lateinit var foregroundChannel: MethodChannel
-  private lateinit var activity: Activity
+  private var activity: Activity? = null
 
   private var projection: List<String>? = null
   private var selection: String? = null
@@ -348,16 +348,20 @@ class SmsMethodCallHandler(
     this.activity = activity
   }
 
+  fun clearActivity() {
+    this.activity = null
+  }
+
   @RequiresApi(Build.VERSION_CODES.M)
   private fun checkOrRequestPermission(permissions: List<String>, requestCode: Int): Boolean {
     permissionsController.apply {
-      
-      if (!::activity.isInitialized) {
+      val act = activity
+      if (act == null) {
         return hasRequiredPermissions(permissions)
       }
-      
+
       if (!hasRequiredPermissions(permissions)) {
-        requestPermissions(activity, permissions, requestCode)
+        requestPermissions(act, permissions, requestCode)
         return false
       }
       return true

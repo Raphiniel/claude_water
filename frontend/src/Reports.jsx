@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
@@ -12,6 +12,113 @@ const FAULT_LABELS = {
 };
 
 const STATUSES = ['ALL', 'PENDING', 'IN_PROGRESS', 'RESOLVED'];
+
+const mapsDirUrl = (lat, lng) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving`;
+
+const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign }) => {
+  const [full, setFull] = useState(report);
+  const [loadErr, setLoadErr] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadErr(null);
+    axios
+      .get(`${API}/api/reports/${report.id}/`, { headers: authHeader() })
+      .then((res) => {
+        if (!cancelled) setFull(res.data);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadErr(err.response?.data ? JSON.stringify(err.response.data) : err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [report.id, authHeader]);
+
+  const wp = full.water_point_details;
+  const tech = full.assigned_to_details;
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560, width: '92%' }}>
+        <div className="modal-header">
+          <div>
+            <h3>Report {full.ticket_number}</h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4 }}>
+              {full.water_point_code} · {formatDate(full.created_at)}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="modal-close">
+            ✕
+          </button>
+        </div>
+
+        {loadErr && <div className="alert alert-error" style={{ margin: '0 0 1rem' }}>{loadErr}</div>}
+
+        <div style={{ display: 'grid', gap: '0.85rem', fontSize: '0.88rem' }}>
+          <div>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Status</div>
+            <span className={`status-badge status-${full.status?.toLowerCase()}`}>{full.status?.replace('_', ' ')}</span>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Fault</div>
+            <span className={`fault-badge fault-${full.fault_code?.toLowerCase()}`}>{FAULT_LABELS[full.fault_code] || full.fault_code}</span>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Reporter (SMS)</div>
+            <span className="mono">{full.sender_number || '—'}</span>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Inbound message</div>
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45, color: 'var(--text-main)' }}>{full.raw_message || '—'}</div>
+          </div>
+          {wp && (
+            <div>
+              <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Water point</div>
+              <div style={{ fontWeight: 600 }}>{wp.location}</div>
+              {wp.description && <div style={{ color: 'var(--text-muted)', marginTop: 4, fontSize: '0.82rem' }}>{wp.description}</div>}
+              {wp.latitude != null && wp.longitude != null && (
+                <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <span className="mono muted" style={{ fontSize: '0.8rem' }}>
+                    {wp.latitude}, {wp.longitude}
+                  </span>
+                  <a className="btn-secondary btn-sm" href={mapsDirUrl(wp.latitude, wp.longitude)} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                    Directions (Google Maps)
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+          <div>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Assigned technician</div>
+            {tech ? (
+              <div>
+                <strong>{tech.name}</strong>
+                <div className="muted" style={{ fontSize: '0.82rem' }}>
+                  {tech.phone}
+                </div>
+              </div>
+            ) : (
+              <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Unassigned</span>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginTop: '1.25rem', flexWrap: 'wrap' }}>
+          <button type="button" className="btn-secondary" onClick={() => navigate(`/waterpoints?flyTo=${full.water_point_code}`)}>
+            View on live map
+          </button>
+          {full.status !== 'RESOLVED' && (
+            <button type="button" className="btn-primary" onClick={() => onAssign(full)}>
+              Assign technician…
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AssignModal = ({ report, onClose, onAssigned, authHeader }) => {
   const [technicians, setTechnicians] = useState([]);
@@ -187,6 +294,8 @@ const Reports = () => {
   const [fetchError, setFetchError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [assigningReport, setAssigningReport] = useState(null);
+  const [detailReport, setDetailReport] = useState(null);
+  const reopenDetailAfterAssign = useRef(false);
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -218,11 +327,15 @@ const Reports = () => {
   }, [fetchReports]);
 
   const handleAssigned = (updatedReport) => {
-    setReports(prev => prev.map(r => r.id === updatedReport.id ? updatedReport : r));
+    setReports((prev) => prev.map((r) => (r.id === updatedReport.id ? updatedReport : r)));
+    if (reopenDetailAfterAssign.current) {
+      setDetailReport(updatedReport);
+      reopenDetailAfterAssign.current = false;
+    }
   };
 
   const handleRowClick = (report) => {
-    navigate(`/waterpoints?flyTo=${report.water_point_code}`);
+    setDetailReport(report);
   };
 
   const filtered = statusFilter === 'ALL' ? reports : reports.filter(r => r.status === statusFilter);
@@ -282,7 +395,7 @@ const Reports = () => {
                     key={r.id}
                     className="clickable-row"
                     onClick={() => handleRowClick(r)}
-                    title="Click to view on map"
+                    title="Click for full details"
                   >
                     <td className="muted">{i + 1}</td>
                     <td className="mono">{r.ticket_number}</td>
@@ -296,7 +409,10 @@ const Reports = () => {
                       {r.status !== 'RESOLVED' && (
                         <button
                           className="btn-secondary btn-sm"
-                          onClick={() => setAssigningReport(r)}
+                          onClick={() => {
+                            reopenDetailAfterAssign.current = false;
+                            setAssigningReport(r);
+                          }}
                         >
                           Assign
                         </button>
@@ -309,6 +425,20 @@ const Reports = () => {
           </div>
         )}
       </div>
+
+      {detailReport && (
+        <ReportDetailModal
+          report={detailReport}
+          authHeader={authHeader}
+          navigate={navigate}
+          onClose={() => setDetailReport(null)}
+          onAssign={(r) => {
+            reopenDetailAfterAssign.current = true;
+            setDetailReport(null);
+            setAssigningReport(r);
+          }}
+        />
+      )}
 
       {assigningReport && (
         <AssignModal

@@ -483,6 +483,24 @@ const Technicians = () => {
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a3e635" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                 Toggle Availability
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuState(null);
+                  const url = `${window.location.origin}/field?token=${encodeURIComponent(t.field_token || '')}`;
+                  if (t.field_token) {
+                    navigator.clipboard.writeText(url).then(() => alert('Field portal link copied. Send it to the technician to open on their phone.')).catch(() => window.prompt('Copy this link:', url));
+                  } else {
+                    alert('Field token not available yet — refresh the list after saving this technician.');
+                  }
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', background: 'none', border: 'none', color: '#93c5fd', padding: '10px 14px', cursor: 'pointer', fontSize: '0.85rem' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Copy field portal link
+              </button>
               <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '0 8px' }} />
               <button
                 onClick={() => { setMenuState(null); handleDelete(t.id); }}

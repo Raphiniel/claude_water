@@ -29,16 +29,20 @@ def send_outbound_sms(message, recipients):
     return sms.send(message, recipients)
 
 
-def send_confirmation_sms(phone, ticket_number, wp_code):
+def send_confirmation_sms(phone, ticket_number, wp_code, technician_name=None):
     """Sends a success reply for a valid report."""
     if not sms:
         logger.error("SMS service not initialized")
         return False
 
-    message = (
+    base = (
         f"Success! Fault report for {wp_code} received. "
-        f"Your ticket number is {ticket_number}. We are attending to it."
+        f"Your ticket number is {ticket_number}."
     )
+    if technician_name:
+        message = base + f" Technician {technician_name} has been assigned."
+    else:
+        message = base + " We are attending to it."
 
     try:
         response = send_outbound_sms(message, [phone])
