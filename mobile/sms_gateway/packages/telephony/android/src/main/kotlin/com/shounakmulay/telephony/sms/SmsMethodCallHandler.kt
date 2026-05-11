@@ -38,6 +38,7 @@ import com.shounakmulay.telephony.utils.Constants.SMS_QUERY_REQUEST_CODE
 import com.shounakmulay.telephony.utils.Constants.SMS_SEND_REQUEST_CODE
 import com.shounakmulay.telephony.utils.Constants.SMS_SENT
 import com.shounakmulay.telephony.utils.Constants.SORT_ORDER
+import com.shounakmulay.telephony.utils.Constants.SUBSCRIPTION_ID_ARG
 import com.shounakmulay.telephony.utils.Constants.WRONG_METHOD_TYPE
 import com.shounakmulay.telephony.utils.ContentUri
 import com.shounakmulay.telephony.utils.SmsAction
@@ -67,6 +68,7 @@ class SmsMethodCallHandler(
   private lateinit var messageBody: String
   private lateinit var address: String
   private var listenStatus: Boolean = false
+  private var subscriptionIdForSend: Int? = null
 
   private var setupHandle: Long = -1
   private var backgroundHandle: Long = -1
@@ -108,6 +110,12 @@ class SmsMethodCallHandler(
           this.address = address
 
           listenStatus = call.argument(LISTEN_STATUS) ?: false
+          subscriptionIdForSend =
+            if (call.hasArgument(SUBSCRIPTION_ID_ARG)) {
+              call.argument<Int>(SUBSCRIPTION_ID_ARG)
+            } else {
+              null
+            }
         }
         handleMethod(action, SMS_SEND_REQUEST_CODE)
       }
@@ -194,8 +202,10 @@ class SmsMethodCallHandler(
       context.applicationContext.registerReceiver(this, intentFilter)
     }
     when (smsAction) {
-      SmsAction.SEND_SMS -> smsController.sendSms(address, messageBody, listenStatus)
-      SmsAction.SEND_MULTIPART_SMS -> smsController.sendMultipartSms(address, messageBody, listenStatus)
+      SmsAction.SEND_SMS ->
+        smsController.sendSms(address, messageBody, listenStatus, subscriptionIdForSend)
+      SmsAction.SEND_MULTIPART_SMS ->
+        smsController.sendMultipartSms(address, messageBody, listenStatus, subscriptionIdForSend)
       SmsAction.SEND_SMS_INTENT -> smsController.sendSmsIntent(address, messageBody)
       else -> throw IllegalArgumentException()
     }

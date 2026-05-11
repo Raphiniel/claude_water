@@ -1,7 +1,7 @@
+import 'dart:async' show unawaited;
 import 'dart:convert';
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
@@ -80,15 +80,6 @@ Future<void> processInboundSms(
 
     log('HTTP ${response.statusCode}');
 
-    if (response.statusCode == 403) {
-      log('Forbidden: check X-SMS-Gateway-Secret vs server SMS_GATEWAY_SHARED_SECRET');
-      return;
-    }
-
-    if (!reply) {
-      return;
-    }
-
     Map<String, dynamic>? jsonBody;
     try {
       final decoded = jsonDecode(response.body);
@@ -100,17 +91,30 @@ Future<void> processInboundSms(
     }
 
     final outbound = jsonBody?['outbound_sms'];
-    if (outbound is! String || outbound.trim().isEmpty) {
+    if (reply &&
+        outbound is String &&
+        outbound.trim().isNotEmpty) {
+      final telephony = Telephony.instance;
+      await telephony.sendSms(
+        to: from,
+        message: outbound.trim(),
+        isMultipart: outbound.length > 160,
+        subscriptionId: msg.subscriptionId,
+      );
+      log('Reply SMS sent to $from (HTTP ${response.statusCode})');
       return;
     }
 
-    final telephony = Telephony.instance;
-    await telephony.sendSms(
-      to: from,
-      message: outbound.trim(),
-      isMultipart: outbound.length > 160,
-    );
-    log('Reply SMS sent to $from');
+    if (response.statusCode == 403) {
+      log('Forbidden: check X-SMS-Gateway-Secret vs server SMS_GATEWAY_SHARED_SECRET');
+      return;
+    }
+
+    if (!reply) {
+      return;
+    }
+
+    log('No outbound_sms in response (HTTP ${response.statusCode})');
   } catch (e, st) {
     log('Error: $e');
     debugPrintStack(stackTrace: st);
@@ -226,8 +230,18 @@ class _GatewayHomePageState extends State<GatewayHomePage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _refreshPermLine();
-      _refreshBatteryLine();
+      unawaited(_onAppResumed());
+    }
+  }
+
+  Future<void> _onAppResumed() async {
+    await _refreshPermLine();
+    await _refreshBatteryLine();
+    if (!mounted) return;
+    final st = await Permission.sms.status;
+    if (!mounted) return;
+    if (st.isGranted && !_listenerReady) {
+      await _attachListener();
     }
   }
 
@@ -271,17 +285,42 @@ class _GatewayHomePageState extends State<GatewayHomePage>
   }
 
   Future<void> _requestSmsPermission() async {
-    final req = await Permission.sms.request();
+    await Permission.sms.request();
     await _telephony.requestSmsPermissions;
+    final st = await Permission.sms.status;
     if (!mounted) return;
     setState(() {
-      _permLine = req.isGranted
+      _permLine = st.isGranted
           ? 'SMS access granted — this device can receive and send relay messages.'
-          : 'Permission denied. Enable SMS in system settings for this app.';
+          : st.isPermanentlyDenied
+              ? 'SMS blocked in system settings — use Open settings when prompted.'
+              : 'Permission denied. Enable SMS in system settings for this app.';
     });
-    if (!req.isGranted) {
+    if (st.isGranted) {
+      await _attachListener();
+    } else {
       _addLog('SMS permission denied');
+      if (st.isPermanentlyDenied) {
+        _showOpenSmsSettingsSnack();
+      }
     }
+  }
+
+  void _showOpenSmsSettingsSnack() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: const Text('Enable SMS permissions for this app in system settings.'),
+        action: SnackBarAction(
+          label: 'Open settings',
+          onPressed: () {
+            unawaited(openAppSettings());
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _refreshBatteryLine() async {
@@ -433,7 +472,9 @@ class _GatewayHomePageState extends State<GatewayHomePage>
                 Text(
                   'Tip: SMS is received in the background when the phone is locked. '
                   'For best results grant SMS + unrestricted battery above, open this app once after reboot, '
-                  'and on Xiaomi / Oppo / Vivo enable autostart for this app in system settings.',
+                  'and on Xiaomi / Oppo / Vivo enable autostart for this app in system settings. '
+                  'Dual-SIM: replies use the same SIM that received each message; if texts still fail, '
+                  'pick a default SMS SIM in Android settings.',
                   style: textTheme.bodySmall?.copyWith(
                     color: scheme.outline,
                     height: 1.35,
@@ -711,8 +752,8 @@ class _StatusBanner extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     ok
-                        ? 'Foreground mode — ready for incoming messages.'
-                        : 'Check permissions or restart the app.',
+                        ? 'Foreground and background — ready for incoming messages.'
+                        : 'Check permissions or return from settings; the listener retries automatically.',
                     style: textTheme.bodySmall?.copyWith(color: fg, height: 1.3),
                   ),
                 ],

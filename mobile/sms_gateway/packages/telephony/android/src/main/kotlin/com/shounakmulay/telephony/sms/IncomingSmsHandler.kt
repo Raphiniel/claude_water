@@ -12,6 +12,7 @@ import android.os.PowerManager
 import android.os.Process
 import android.provider.Telephony
 import android.telephony.SmsMessage
+import android.telephony.SubscriptionManager
 import com.shounakmulay.telephony.utils.Constants
 import com.shounakmulay.telephony.utils.Constants.HANDLE
 import com.shounakmulay.telephony.utils.Constants.HANDLE_BACKGROUND_MESSAGE
@@ -25,6 +26,7 @@ import com.shounakmulay.telephony.utils.Constants.SHARED_PREFS_BACKGROUND_MESSAG
 import com.shounakmulay.telephony.utils.Constants.SHARED_PREFS_BACKGROUND_SETUP_HANDLE
 import com.shounakmulay.telephony.utils.Constants.SHARED_PREFS_DISABLE_BACKGROUND_EXE
 import com.shounakmulay.telephony.utils.Constants.STATUS
+import com.shounakmulay.telephony.utils.Constants.SUBSCRIPTION_ID
 import com.shounakmulay.telephony.utils.Constants.TIMESTAMP
 import com.shounakmulay.telephony.utils.SmsAction
 import io.flutter.FlutterInjector
@@ -68,8 +70,9 @@ class IncomingSmsReceiver : BroadcastReceiver() {
         val grouped = smsList.groupBy { it.originatingAddress }
         val holdMs = if (grouped.isEmpty()) 2_000L else BROADCAST_HOLD_MS
 
+        val subscriptionId = readSubscriptionIdFromIntent(intent)
         grouped.forEach { group ->
-            processIncomingSms(appCtx, group.value)
+            processIncomingSms(appCtx, group.value, subscriptionId)
         }
 
         // Isolate + HTTP is async; hold the broadcast + wake lock so work can finish while locked / screen off.
@@ -94,13 +97,32 @@ class IncomingSmsReceiver : BroadcastReceiver() {
      * [IncomingSmsHandler.executeDartCallbackInBackgroundIsolate] with the SMS.
      *
      */
-    private fun processIncomingSms(context: Context, smsList: List<SmsMessage>) {
+    private fun readSubscriptionIdFromIntent(intent: Intent?): Int {
+        if (intent == null) return SubscriptionManager.INVALID_SUBSCRIPTION_ID
+        var id = intent.getIntExtra("subscription", SubscriptionManager.INVALID_SUBSCRIPTION_ID)
+        if (id == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+            id = intent.getIntExtra(
+                SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX,
+                SubscriptionManager.INVALID_SUBSCRIPTION_ID,
+            )
+        }
+        return id
+    }
+
+    private fun processIncomingSms(
+        context: Context,
+        smsList: List<SmsMessage>,
+        subscriptionId: Int,
+    ) {
         val messageMap = smsList.first().toMap()
         smsList.forEachIndexed { index, smsMessage ->
             if (index > 0) {
                 messageMap[MESSAGE_BODY] = (messageMap[MESSAGE_BODY] as String)
                     .plus(smsMessage.messageBody.trim())
             }
+        }
+        if (subscriptionId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+            messageMap[SUBSCRIPTION_ID] = subscriptionId.toString()
         }
         if (IncomingSmsHandler.isApplicationForeground(context)) {
             val args = HashMap<String, Any>()

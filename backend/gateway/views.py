@@ -22,16 +22,32 @@ logger = logging.getLogger(__name__)
 
 
 def _incoming_sms_fields(request):
-    """Africa's Talking posts urlencoded fields; tolerate a few aliases."""
-    data = request.data
-    sender = (
-        data.get("from")
-        or data.get("fromPhone")
-        or data.get("sender")
-        or data.get("phoneNumber")
-    )
-    text = data.get("text") or data.get("message") or data.get("body") or ""
-    return sender, (text or "")
+    """Africa's Talking and the Android gateway post urlencoded fields; merge POST + DRF data."""
+    post = getattr(request, "POST", None)
+    drf = getattr(request, "data", None)
+
+    def pick(keys):
+        for k in keys:
+            v = None
+            if post is not None:
+                try:
+                    v = post.get(k)
+                except Exception:
+                    v = None
+            if v not in (None, ""):
+                return v
+            if drf is not None:
+                try:
+                    v = drf.get(k)
+                except Exception:
+                    v = None
+            if v not in (None, ""):
+                return v
+        return None
+
+    sender = pick(("from", "fromPhone", "sender", "phoneNumber"))
+    text = pick(("text", "message", "body")) or ""
+    return sender, text
 
 
 def haversine_km(lat1, lon1, lat2, lon2):
@@ -102,13 +118,37 @@ class SMSWebhookView(APIView):
     def post(self, request, *args, **kwargs):
         gateway = _is_device_gateway_request(request)
         if gateway and not _gateway_secret_ok(request):
-            return Response({"detail": "Invalid gateway secret."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {
+                    "detail": "Invalid gateway secret.",
+                    "status": "error",
+                    "outbound_sms": (
+                        "WaterWise: this phone was rejected (gateway secret). "
+                        "Match app Shared secret to server SMS_GATEWAY_SHARED_SECRET, "
+                        "or leave both empty."
+                    ),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         sender_number, message_text = _incoming_sms_fields(request)
 
         if not sender_number:
             if gateway:
-                return Response({"status": "ignored", "outbound_sms": ""})
+                logger.warning(
+                    "Gateway SMS missing sender; POST keys=%s data keys=%s",
+                    list(request.POST.keys()) if request.POST else [],
+                    list(request.data.keys()) if hasattr(request.data, "keys") else [],
+                )
+                return Response(
+                    {
+                        "status": "error",
+                        "outbound_sms": (
+                            "WaterWise: server did not receive your number. "
+                            "Try saving settings in the app and send again."
+                        ),
+                    }
+                )
             return HttpResponse("GOOD", content_type="text/plain", status=200)
 
         try:

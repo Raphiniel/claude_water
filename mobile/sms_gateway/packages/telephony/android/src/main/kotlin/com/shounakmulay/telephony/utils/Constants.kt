@@ -52,6 +52,10 @@ object Constants {
 
   const val TIMESTAMP = "timestamp"
   const val ORIGINATING_ADDRESS = "originating_address"
+  /** Message map key for inbound subscription (matches Flutter telephony `sub_id`). */
+  const val SUBSCRIPTION_ID = "sub_id"
+  /** Optional sendSms / sendMultipart channel argument (Int). */
+  const val SUBSCRIPTION_ID_ARG = "subscription_id"
   const val STATUS = "status"
 
   const val SETUP_HANDLE = "setupHandle"

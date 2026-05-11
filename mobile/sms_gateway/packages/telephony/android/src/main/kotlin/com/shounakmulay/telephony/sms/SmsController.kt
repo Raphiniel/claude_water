@@ -60,8 +60,13 @@ class SmsController(private val context: Context) {
     }
 
     // SEND SMS
-    fun sendSms(destinationAddress: String, messageBody: String, listenStatus: Boolean) {
-        val smsManager = getSmsManager()
+    fun sendSms(
+        destinationAddress: String,
+        messageBody: String,
+        listenStatus: Boolean,
+        subscriptionId: Int? = null,
+    ) {
+        val smsManager = getSmsManager(subscriptionId)
         if (listenStatus) {
             val pendingIntents = getPendingIntents()
             smsManager.sendTextMessage(
@@ -76,8 +81,13 @@ class SmsController(private val context: Context) {
         }
     }
 
-    fun sendMultipartSms(destinationAddress: String, messageBody: String, listenStatus: Boolean) {
-        val smsManager = getSmsManager()
+    fun sendMultipartSms(
+        destinationAddress: String,
+        messageBody: String,
+        listenStatus: Boolean,
+        subscriptionId: Int? = null,
+    ) {
+        val smsManager = getSmsManager(subscriptionId)
         val messageParts = smsManager.divideMessage(messageBody)
         if (listenStatus) {
             val pendingIntents = getMultiplePendingIntents(messageParts.size)
@@ -139,18 +149,47 @@ class SmsController(private val context: Context) {
         return Pair(sentPendingIntent, deliveredPendingIntent)
     }
 
-    private fun getSmsManager(): SmsManager {
-        val subscriptionId = SmsManager.getDefaultSmsSubscriptionId()
-        val smsManager = getSystemService(context, SmsManager::class.java)
-            ?: throw RuntimeException("Flutter Telephony: Error getting SmsManager")
-        if (subscriptionId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                smsManager.createForSubscriptionId(subscriptionId)
+    /**
+     * [Context.getSystemService] with [SmsManager] was added in API 31; on API 23–30 it returns null,
+     * which broke SIM replies. Fall back to deprecated [SmsManager.getDefault] when needed.
+     *
+     * @param preferredSubscriptionId subscription that received the inbound SMS (dual-SIM); when null,
+     * uses [SmsManager.getDefaultSmsSubscriptionId] like a normal default-SMS app.
+     */
+    private fun getSmsManager(preferredSubscriptionId: Int? = null): SmsManager {
+        val defaultSub = SmsManager.getDefaultSmsSubscriptionId()
+        val resolvedSub =
+            if (preferredSubscriptionId != null &&
+                preferredSubscriptionId != SubscriptionManager.INVALID_SUBSCRIPTION_ID
+            ) {
+                preferredSubscriptionId
             } else {
-                SmsManager.getSmsManagerForSubscriptionId(subscriptionId)
+                defaultSub
+            }
+
+        if (resolvedSub != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val fromSystemService: SmsManager? =
+                    getSystemService(context, SmsManager::class.java)
+                        ?: context.applicationContext.getSystemService(SmsManager::class.java)
+                @Suppress("DEPRECATION")
+                val base = fromSystemService ?: SmsManager.getDefault()
+                base.createForSubscriptionId(resolvedSub)
+            } else {
+                @Suppress("DEPRECATION")
+                SmsManager.getSmsManagerForSubscriptionId(resolvedSub)
             }
         }
-        return smsManager
+
+        val fromSystemService: SmsManager? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                getSystemService(context, SmsManager::class.java)
+                    ?: context.applicationContext.getSystemService(SmsManager::class.java)
+            } else {
+                null
+            }
+        @Suppress("DEPRECATION")
+        return fromSystemService ?: SmsManager.getDefault()
     }
 
     // PHONE

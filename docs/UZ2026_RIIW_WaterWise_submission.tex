@@ -1,0 +1,114 @@
+% =============================================================================
+% UZ 2026 Research Innovation & Industrialisation Week — Abstract + synopsis
+% Event: 18--23 May 2026, UZ Innovation Hub  |  Abstract deadline: 21 Apr 2026
+% Acceptance notification: 28 Apr 2026     |  Hashtag: #UZ2026RIIW
+%
+% Compile: pdflatex UZ2026_RIIW_WaterWise_submission.tex
+% Lead contact phone included below (E.164 + local format).
+% =============================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{url}
+\setlist{nosep,leftmargin=*}
+
+\hypersetup{colorlinks=true,linkcolor=blue!60!black,urlcolor=blue!60!black,citecolor=blue!60!black}
+
+\title{\textbf{WaterWise: Low-Bandwidth Fault Reporting and Operations Dashboard for Dispersed Community Water Points}}
+\author{%
+  Raphiniel R Murira\\
+  \small HSE, University of Zimbabwe\\
+  \small Email: \href{mailto:raphiniel@loficode.tech}{raphiniel@loficode.tech} \;(\href{mailto:raphinielr@gmail.com}{raphinielr@gmail.com}) \quad Phone: \texttt{+263\,78\,360\,7500} / \texttt{0783607500}
+}
+\date{Submission draft --- UZ 2026 RIIW (7th edition)}
+
+\begin{document}
+\maketitle
+
+\noindent\textbf{Event.} UZ 2026 Research Innovation \& Industrialisation Week, 18--23 May 2026, University of Zimbabwe Innovation Hub.
+
+% -----------------------------------------------------------------------------
+\section*{Submission metadata (as required by the call)}
+\begin{description}[style=nextline,font=\normalfont\bfseries]
+  \item[Lead author] Raphiniel R Murira
+  \item[Contact] Email: \texttt{raphiniel@loficode.tech}; \texttt{raphinielr@gmail.com} \quad Phone: \texttt{+263\,78\,360\,7500} (\texttt{0783607500})
+  \item[Mode of presentation] \textbf{Exhibition} \textit{(booth/table demo: live SMS $\rightarrow$ gateway phone $\rightarrow$ API $\rightarrow$ dashboard; bring handset, laptop, and optional printed one-pager.)}
+  \item[Targeted sub-thematic area] \textbf{(1) AI, ICTs and the future of education and development.} \textit{(Best fit for WaterWise as an ICT + low-bandwidth access story. If your supervisor prefers water/agriculture, switch to (2) and adjust the Alignment section.)}
+\end{description}
+
+\noindent\small\textbf{What ``mode'' means.} \textit{Oral} = a timed talk with slides in a session. \textit{Poster} = a printed poster on a board; you stand beside it and discuss. \textit{Exhibition} = booth/table style demo (live hardware + screen). \textbf{This document selects Exhibition.} Use the same mode on the official submission form.
+
+% -----------------------------------------------------------------------------
+\section{Official sub-themes (copy exactly one into the metadata box above)}
+\label{sec:themes}
+\begin{enumerate}
+  \item AI, ICTs and the future of education and development.
+  \item Agricultural value chains and food systems for industrialisation.
+  \item Innovations for value addition and beneficiation of natural resources.
+  \item Tapping our natural resource endowments for national economic competitiveness.
+  \item Drug Discovery value chains: Human, animal and plant health.
+  \item Human capital development in the Heritage-based Education 5.0 era.
+  \item Creative economies and social innovation for market success.
+\end{enumerate}
+
+% -----------------------------------------------------------------------------
+\section*{Abstract (max.\ 300 words; plain-text word count $\approx$209)}
+
+Community water infrastructure---boreholes, piped schemes, and rural stands---often suffers delays between field faults and operational response because reporting depends on ad hoc calls, informal messaging, or repeat site visits. WaterWise is an integrated information system that shortens this loop by using SMS as a ubiquitous, low-bandwidth channel. A dedicated Android handset runs a lightweight gateway application that forwards inbound text to a secure REST API; the server validates input, creates structured fault tickets linked to registered water points, and supports assignment to technicians. Field users may report using compact codes or an interactive SMS menu that guides selection of site and problem category, aiming to improve usability and traceability for diverse users. The implementation couples a Django and PostgreSQL backend with JSON Web Token authentication, a React dashboard for spatial and tabular oversight, and deployment patterns suited to modest infrastructure (HTTPS, reverse proxy, process supervision). Design choices emphasise accountability (retaining raw message text and originating numbers where available) and operational transparency for administrators. Positioned against national priorities around reliable water services and data-informed maintenance, WaterWise offers a replicable architectural pattern for last-mile reporting in resource-constrained settings. Ongoing work includes hardening handset-level reliability, aligning gateway secrets with server policy, and planned evaluation of time-to-ticket and coverage metrics in pilot deployments.
+
+% -----------------------------------------------------------------------------
+\section*{Keywords}
+Water point monitoring; SMS gateway; infrastructure operations; Django; React; low-bandwidth systems; Zimbabwe.
+
+% -----------------------------------------------------------------------------
+\section*{Objectives}
+\begin{itemize}
+  \item Reduce latency between \textbf{field fault observation} and \textbf{actionable digital records} for dispersed water points.
+  \item Provide \textbf{inclusive reporting} paths (structured SMS and menu-driven dialogue) where smartphone data coverage is uneven.
+  \item Support \textbf{accountability and auditability} through stored inbound text and sender linkage where the network exposes it.
+  \item Enable \textbf{operations-centred oversight}: mapping, prioritisation, and technician assignment on a single web stack.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section*{Methodology (summary)}
+The work follows an \textbf{applied design--build--deploy} cycle: requirements were derived from typical rural/ peri-urban water-point maintenance workflows; a minimal viable system was implemented (handset relay, API, relational store, SPA dashboard); the stack was hardened for TLS deployment and authentication. Validation is \textbf{formative}: functional testing of SMS dialogues, webhook contracts, and role-protected APIs; \textbf{summative} evaluation (time-to-ticket, reporter coverage, technician uptake) is planned with partner stakeholders---to be reported as available at the conference date.
+
+% -----------------------------------------------------------------------------
+\section*{Alignment with chosen sub-theme (1) --- ICTs}
+WaterWise foregrounds ICT infrastructure for \textbf{inclusive access}: SMS as transport, progressive disclosure via menu, and a web dashboard for planners---consistent with digital development agendas without presuming continuous smartphone connectivity.
+
+% -----------------------------------------------------------------------------
+\section*{Requirements satisfied (call checklist)}
+\begin{itemize}
+  \item Abstract within \textbf{300 words}.
+  \item Lead author \textbf{name and contact} (email and phone).
+  \item \textbf{Mode of presentation} selected.
+  \item \textbf{Sub-thematic area} explicitly identified (one of seven).
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section*{Optional: technical scope (for reviewers; not part of word-limited abstract)}
+\begin{itemize}
+  \item \textbf{Clients:} Web dashboard (React/Vite); Android SMS relay (Flutter, Telephony plugin).
+  \item \textbf{Server:} Django REST Framework, PostgreSQL, Simple JWT, HTTPS reverse proxy.
+  \item \textbf{Entities:} Water points, fault reports, technicians, optional SMS gateway sessions and audit fields.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section*{References (add your own; examples below are illustrative)}
+\begin{thebibliography}{9}
+\bibitem{nds1} Government of Zimbabwe. \textit{National Development Strategy 1} (NDS1) priority documents --- align WaterWise claims with official wording as needed.
+\bibitem{wash} World Health Organization / UNICEF. Joint Monitoring Programme for Water Supply, Sanitation and Hygiene (JMP) --- use for global WASH context if required.
+\end{thebibliography}
+
+\vfill
+\noindent\rule{\linewidth}{0.4pt}\\[0.35em]
+\small\textit{Official contacts from the call for correspondence: \texttt{uzresearchweek@uz.edu.zw}, \texttt{researchweek@admin.uz.ac.zw}, phone +263\,77\,108\,4422. \quad \texttt{\#UZ2026RIIW}}
+
+\end{document}

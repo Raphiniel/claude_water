@@ -305,6 +305,7 @@ class Telephony {
     required String message,
     SmsSendStatusListener? statusListener,
     bool isMultipart = false,
+    int? subscriptionId,
   }) async {
     assert(_platform.isAndroid == true, "Can only be called on Android.");
     bool listenStatus = false;
@@ -317,6 +318,9 @@ class Telephony {
       "message_body": message,
       "listen_status": listenStatus
     };
+    if (subscriptionId != null) {
+      args["subscription_id"] = subscriptionId;
+    }
     final String method = isMultipart ? SEND_MULTIPART_SMS : SEND_SMS;
     await _foregroundChannel.invokeMethod(method, args);
   }
@@ -628,7 +632,9 @@ class SmsMessage {
           this.subject = value;
           break;
         case _SmsProjections.SUBSCRIPTION_ID:
-          this.subscriptionId = int.tryParse(value);
+          if (value != null) {
+            this.subscriptionId = int.tryParse(value.toString());
+          }
           break;
         case _SmsProjections.THREAD_ID:
           this.threadId = int.tryParse(value);
