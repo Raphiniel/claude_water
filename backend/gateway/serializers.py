@@ -20,7 +20,7 @@ class FaultReportSerializer(serializers.ModelSerializer):
         model = FaultReport
         fields = [
             'id', 'water_point', 'water_point_code', 'water_point_details',
-            'fault_code', 'sender_number', 'ticket_number', 'status',
+            'fault_code', 'sender_number', 'raw_message', 'ticket_number', 'status',
             'assigned_to', 'assigned_to_details', 'created_at'
         ]
 

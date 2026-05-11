@@ -39,6 +39,7 @@ class FaultReport(models.Model):
     water_point = models.ForeignKey(WaterPoint, on_delete=models.CASCADE, related_name='reports')
     fault_code = models.CharField(max_length=10, choices=FAULT_CHOICES)
     sender_number = models.CharField(max_length=20)
+    raw_message = models.TextField(blank=True, default='', help_text='Inbound SMS body as received (accountability).')
     ticket_number = models.CharField(max_length=20, unique=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     assigned_to = models.ForeignKey(Technician, null=True, blank=True, on_delete=models.SET_NULL, related_name='assignments')

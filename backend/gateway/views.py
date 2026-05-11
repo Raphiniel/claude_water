@@ -120,6 +120,7 @@ class SMSWebhookView(APIView):
                     water_point=wp,
                     fault_code=validation_result['parsed']['fault_code'],
                     sender_number=sender_number,
+                    raw_message=message_text or '',
                     ticket_number=ticket,
                     status='PENDING',
                 )

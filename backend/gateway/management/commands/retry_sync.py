@@ -30,6 +30,7 @@ class Command(BaseCommand):
                         water_point=wp,
                         fault_code=result['parsed']['fault_code'],
                         sender_number=buffer_item.sender_number,
+                        raw_message=buffer_item.raw_message or '',
                         ticket_number=ticket,
                         status='PENDING'
                     )

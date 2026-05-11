@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 
 import { API_BASE as API } from './apiConfig';
+
+const FAULT_LABELS = {
+  PUMP: 'Pump Failure', LEAK: 'Pipe Leak', DRY: 'Borehole Dry',
+  CONTAM: 'Contamination', VANDAL: 'Vandalism', OTHER: 'Other',
+};
 
 const Sms = () => {
   const [recipient, setRecipient] = useState('');
@@ -11,7 +17,35 @@ const Sms = () => {
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
+  const [faultSmsFeed, setFaultSmsFeed] = useState([]);
+  const [feedLoading, setFeedLoading] = useState(true);
+  const [feedError, setFeedError] = useState(null);
   const { user } = useAuth();
+
+  const loadIncomingFaultSms = useCallback(async () => {
+    if (!user?.token) {
+      setFeedLoading(false);
+      return;
+    }
+    setFeedError(null);
+    setFeedLoading(true);
+    try {
+      const res = await axios.get(`${API}/api/reports/`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const rows = Array.isArray(res.data) ? res.data : res.data?.results || [];
+      setFaultSmsFeed(rows);
+    } catch (err) {
+      setFeedError(err.response?.data?.detail || err.message || 'Failed to load incoming SMS');
+      setFaultSmsFeed([]);
+    } finally {
+      setFeedLoading(false);
+    }
+  }, [user?.token]);
+
+  useEffect(() => {
+    loadIncomingFaultSms();
+  }, [loadIncomingFaultSms]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -187,70 +221,95 @@ const Sms = () => {
 
         </div>
         
-        {/* RIGHT COLUMN */}
+        {/* RIGHT COLUMN — incoming fault SMS (gateway accountability) */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="glass-panel" style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: 32, height: 32, borderRadius: '8px', background: 'rgba(168,85,247,0.1)', color: '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <div style={{ width: 32, height: 32, borderRadius: '8px', background: 'rgba(163,230,53,0.12)', color: '#a3e635', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                 </div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Recent Dispatches</h3>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Incoming fault SMS</h3>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: '#888' }}>Exact message and sender for each ticket opened via SMS</p>
+                </div>
               </div>
-              <button style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '0.3rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}>
-                View all
+              <button
+                type="button"
+                onClick={() => loadIncomingFaultSms()}
+                disabled={feedLoading}
+                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '0.3rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem', cursor: feedLoading ? 'wait' : 'pointer' }}
+              >
+                Refresh
               </button>
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', padding: '1rem 1.5rem', flex: 1, gap: '0.75rem' }}>
-              {[
-                { 
-                  icon: <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#a3e635', boxShadow: '0 0 0 3px rgba(163,230,53,0.2)' }} />,
-                  time: '10 mins ago', to: 'All Active Technicians', toColor: '#a3e635', status: 'DELIVERED', msg: 'CRITICAL: Borehole WP005 offline in Epworth. Please investigate immediately.', recipients: 25 
-                },
-                { 
-                  icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a3e635" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>,
-                  time: '2 hours ago', to: '+263 77 123 4567', toColor: '#a3e635', status: 'DELIVERED', msg: 'Your maintenance request for WP012 has been approved.', recipients: 1 
-                },
-                { 
-                  icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-                  time: 'Yesterday', to: 'Harare Region Contacts', toColor: '#60a5fa', status: 'FAILED', msg: 'System maintenance scheduled for tonight 00:00 - 04:00 CAT.', recipients: 18 
-                },
-                { 
-                  icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-                  time: 'May 1, 2026', to: 'Community Leaders Group', toColor: '#fbbf24', status: 'DELIVERED', msg: 'Water quality test results for April are now available. Please check the portal.', recipients: 12 
-                }
-              ].map((log, i) => (
-                <div key={i} style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '1rem', background: 'rgba(255,255,255,0.01)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20 }}>
-                        {log.icon}
-                      </div>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: log.toColor }}>{log.to}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', padding: '1rem 1.5rem', flex: 1, gap: '0.75rem', maxHeight: 'min(70vh, 640px)', overflowY: 'auto' }}>
+              {feedError && (
+                <div className="alert alert-error" style={{ margin: 0 }}>{feedError}</div>
+              )}
+              {feedLoading && !feedError && (
+                <p style={{ color: '#888', fontSize: '0.85rem', margin: 0 }}>Loading…</p>
+              )}
+              {!feedLoading && !feedError && faultSmsFeed.length === 0 && (
+                <p style={{ color: '#888', fontSize: '0.85rem', margin: 0 }}>No fault tickets yet. When someone texts the gateway (e.g. <code style={{ color: '#ccc' }}>WP001 PUMP</code>), the raw SMS and number will appear here.</p>
+              )}
+              {!feedLoading && faultSmsFeed.map((r) => (
+                <div key={r.id} style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '1rem', background: 'rgba(255,255,255,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.65rem', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#a3e635', fontWeight: 700, marginBottom: '0.35rem' }}>From</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff', wordBreak: 'break-all' }}>{r.sender_number || '—'}</div>
                     </div>
-                    <span style={{ fontSize: '0.7rem', color: '#888' }}>{log.time}</span>
-                  </div>
-                  <p style={{ fontSize: '0.8rem', color: '#ccc', marginBottom: '1rem', lineHeight: 1.4, paddingLeft: '1.75rem' }}>"{log.msg}"</p>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '1.75rem' }}>
-                    <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.6rem', borderRadius: '4px', background: log.status === 'DELIVERED' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: log.status === 'DELIVERED' ? '#10b981' : '#ef4444', fontWeight: 700, letterSpacing: '0.05em' }}>
-                      {log.status}
+                    <span style={{ fontSize: '0.72rem', color: '#888', whiteSpace: 'nowrap' }}>
+                      {r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : ''}
                     </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#888', fontSize: '0.75rem' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                      {log.recipients} {log.recipients === 1 ? 'recipient' : 'recipients'}
-                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', fontWeight: 600, marginBottom: '0.35rem' }}>Message (as received)</div>
+                  <div
+                    style={{
+                      fontSize: '0.85rem',
+                      color: '#e5e5e5',
+                      lineHeight: 1.45,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                      background: 'rgba(0,0,0,0.25)',
+                      padding: '0.65rem 0.75rem',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    {r.raw_message && String(r.raw_message).trim() !== ''
+                      ? r.raw_message
+                      : '— No message text stored (ticket created before inbound logging was enabled).'}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.85rem', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: '#ccc' }}>
+                      Ticket <strong style={{ color: '#fff' }}>{r.ticket_number}</strong>
+                    </span>
+                    <span style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: '#ccc' }}>
+                      {r.water_point_code || r.water_point_details?.code || '—'}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(168,85,247,0.12)', color: '#d8b4fe' }}>
+                      {FAULT_LABELS[r.fault_code] || r.fault_code}
+                    </span>
+                    <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: r.status === 'RESOLVED' ? 'rgba(16,185,129,0.12)' : 'rgba(251,191,36,0.12)', color: r.status === 'RESOLVED' ? '#34d399' : '#fbbf24', fontWeight: 700 }}>
+                      {r.status?.replace('_', ' ') || '—'}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
 
-            <button style={{ width: '100%', background: 'transparent', border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)', color: '#ccc', padding: '1rem', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              View all dispatch history
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-            </button>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '0.85rem 1.5rem' }}>
+              <Link to="/reports" style={{ color: '#a3e635', fontSize: '0.85rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                Open fault reports
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </Link>
+              <p style={{ margin: '0.6rem 0 0', fontSize: '0.75rem', color: '#666' }}>Outbound broadcasts sent from this page are not listed here yet.</p>
+            </div>
             
           </div>
         </div>
