@@ -13,6 +13,7 @@ from rest_framework import viewsets
 from django.http import HttpResponse
 
 from .models import FaultReport, WaterPoint, SyncBuffer, Technician
+from .sms_dialog import handle_gateway_sms_dialog
 from .validators import validate_sms_report
 from .sms_service import send_confirmation_sms, send_error_sms
 from .serializers import FaultReportSerializer, WaterPointSerializer, TechnicianSerializer
@@ -144,6 +145,8 @@ class SMSWebhookView(APIView):
 
                 send_confirmation_sms(sender_number, ticket, wp.code)
                 logger.info("Report saved, ticket %s for %s", ticket, sender_number)
+            elif gateway:
+                return Response(handle_gateway_sms_dialog(sender_number, message_text))
             else:
                 SyncBuffer.objects.create(
                     raw_message=message_text,
@@ -152,14 +155,6 @@ class SMSWebhookView(APIView):
                     is_synced=False
                 )
                 err = validation_result['error_message']
-                if gateway:
-                    outbound = f"Report rejected: {err}"
-                    return Response(
-                        {
-                            "status": "error",
-                            "outbound_sms": outbound,
-                        }
-                    )
                 send_error_sms(sender_number, err)
 
         except Exception as e:

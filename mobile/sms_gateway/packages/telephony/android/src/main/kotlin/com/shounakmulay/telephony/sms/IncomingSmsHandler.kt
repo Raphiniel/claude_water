@@ -5,6 +5,10 @@ import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.os.PowerManager
 import android.os.Process
 import android.provider.Telephony
 import android.telephony.SmsMessage
@@ -40,15 +44,44 @@ class IncomingSmsReceiver : BroadcastReceiver() {
 
     companion object {
         var foregroundSmsChannel: MethodChannel? = null
+        /** Time to let the background Flutter isolate start, run HTTP (~45s), and reply SMS. */
+        private const val BROADCAST_HOLD_MS = 75_000L
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
-        ContextHolder.applicationContext = context.applicationContext
-        val smsList = Telephony.Sms.Intents.getMessagesFromIntent(intent)
-        val messagesGroupedByOriginatingAddress = smsList.groupBy { it.originatingAddress }
-        messagesGroupedByOriginatingAddress.forEach { group ->
-            processIncomingSms(context, group.value)
+        val pendingResult = goAsync()
+        val appCtx = context.applicationContext
+        val pm = appCtx.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakeLock = pm.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "WaterWise:SmsRelayWake"
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            wakeLock.acquire(BROADCAST_HOLD_MS + 15_000L)
+        } else {
+            @Suppress("DEPRECATION")
+            wakeLock.acquire()
         }
+
+        ContextHolder.applicationContext = appCtx
+        val smsList = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+        val grouped = smsList.groupBy { it.originatingAddress }
+        val holdMs = if (grouped.isEmpty()) 2_000L else BROADCAST_HOLD_MS
+
+        grouped.forEach { group ->
+            processIncomingSms(appCtx, group.value)
+        }
+
+        // Isolate + HTTP is async; hold the broadcast + wake lock so work can finish while locked / screen off.
+        Handler(Looper.getMainLooper()).postDelayed({
+            try {
+                if (wakeLock.isHeld) {
+                    wakeLock.release()
+                }
+            } catch (_: RuntimeException) {
+            }
+            pendingResult.finish()
+        }, holdMs)
     }
 
     /**

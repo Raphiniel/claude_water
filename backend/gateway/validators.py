@@ -27,20 +27,34 @@ def validate_sms_report(message_text, sender_number):
         return result
 
     wp_code = parts[0]
-    fault_code = parts[1]
+    fault_token = parts[1]
+    valid_faults = ['PUMP', 'LEAK', 'DRY', 'CONTAM', 'VANDAL', 'OTHER']
 
     # Validate Water Point Code
     try:
-        wp = WaterPoint.objects.get(code=wp_code)
+        WaterPoint.objects.get(code=wp_code)
         result['parsed']['wp_code'] = wp_code
     except WaterPoint.DoesNotExist:
         result['error_message'] = f"Water Point {wp_code} not found in our system."
         return result
 
-    # Validate Fault Code
-    valid_faults = ['PUMP', 'LEAK', 'DRY', 'CONTAM', 'VANDAL', 'OTHER']
-    if fault_code not in valid_faults:
-        result['error_message'] = f"Invalid fault code {fault_code}. Use: PUMP, LEAK, DRY, CONTAM, VANDAL, or OTHER."
+    # Expert shortcut: WP001 1 .. 6 → PUMP .. OTHER
+    if fault_token.isdigit():
+        idx = int(fault_token)
+        if idx < 1 or idx > len(valid_faults):
+            result['error_message'] = (
+                f"Fault # must be 1-{len(valid_faults)} "
+                "(1=PUMP 2=LEAK 3=DRY 4=CONTAM 5=VANDAL 6=OTHER)."
+            )
+            return result
+        fault_code = valid_faults[idx - 1]
+    elif fault_token in valid_faults:
+        fault_code = fault_token
+    else:
+        result['error_message'] = (
+            f"Invalid fault {fault_token}. "
+            "Use word or # 1-6: PUMP LEAK DRY CONTAM VANDAL OTHER."
+        )
         return result
 
     result['parsed']['fault_code'] = fault_code

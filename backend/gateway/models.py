@@ -57,3 +57,27 @@ class SyncBuffer(models.Model):
 
     def __str__(self):
         return f"Failed report from {self.sender_number}"
+
+
+class GatewaySmsSession(models.Model):
+    """Per-handset SMS menu state for the Android gateway relay."""
+
+    STATE_IDLE = "idle"
+    STATE_PICK_WP = "pick_wp"
+    STATE_PICK_FAULT = "pick_fault"
+    STATE_CHOICES = [
+        (STATE_IDLE, "Idle"),
+        (STATE_PICK_WP, "Pick water point"),
+        (STATE_PICK_FAULT, "Pick fault"),
+    ]
+
+    sender_number = models.CharField(max_length=32, unique=True, db_index=True)
+    state = models.CharField(
+        max_length=20, choices=STATE_CHOICES, default=STATE_IDLE
+    )
+    pending_wp_code = models.CharField(max_length=50, blank=True, default="")
+    wp_page = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"SMS session {self.sender_number} ({self.state})"

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -199,6 +200,7 @@ class _GatewayHomePageState extends State<GatewayHomePage>
   bool _replyEnabled = true;
   bool _listenerReady = false;
   String _permLine = 'Tap the button below to grant SMS access.';
+  String _batteryLine = '';
 
   final List<String> _log = [];
 
@@ -208,6 +210,7 @@ class _GatewayHomePageState extends State<GatewayHomePage>
     WidgetsBinding.instance.addObserver(this);
     _load().then((_) {
       _refreshPermLine();
+      _refreshBatteryLine();
       _attachListener();
     });
   }
@@ -224,6 +227,7 @@ class _GatewayHomePageState extends State<GatewayHomePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshPermLine();
+      _refreshBatteryLine();
     }
   }
 
@@ -277,6 +281,33 @@ class _GatewayHomePageState extends State<GatewayHomePage>
     });
     if (!req.isGranted) {
       _addLog('SMS permission denied');
+    }
+  }
+
+  Future<void> _refreshBatteryLine() async {
+    if (!Platform.isAndroid) {
+      if (mounted) setState(() => _batteryLine = '');
+      return;
+    }
+    final st = await Permission.ignoreBatteryOptimizations.status;
+    if (!mounted) return;
+    setState(() {
+      _batteryLine = st.isGranted
+          ? 'Battery: unrestricted — good for relay while the phone is locked or the screen is off.'
+          : 'Battery: still optimized — Android may delay or block the webhook POST when the screen is off. Tap below to allow.';
+    });
+  }
+
+  /// Lets the relay finish HTTPS while the device is dozing (locked / screen off).
+  Future<void> _requestUnrestrictedBattery() async {
+    if (!Platform.isAndroid) return;
+    final req = await Permission.ignoreBatteryOptimizations.request();
+    await _refreshBatteryLine();
+    if (!mounted) return;
+    if (req.isGranted) {
+      _addLog('Battery unrestricted — background POSTs allowed');
+    } else {
+      _addLog('Battery still restricted — use system settings if the dialog was skipped');
     }
   }
 
@@ -374,10 +405,35 @@ class _GatewayHomePageState extends State<GatewayHomePage>
                     ),
                   ),
                 ),
+                if (Platform.isAndroid) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    _batteryLine.isEmpty
+                        ? 'Checking battery settings…'
+                        : _batteryLine,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.tonalIcon(
+                    onPressed: _requestUnrestrictedBattery,
+                    icon: const Icon(Icons.battery_charging_full_rounded),
+                    label: const Text('Allow unrestricted battery (locked / screen off)'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Text(
-                  'Tip: keep this screen open or the app in Recents. '
-                  'Listening runs in the foreground for reliability.',
+                  'Tip: SMS is received in the background when the phone is locked. '
+                  'For best results grant SMS + unrestricted battery above, open this app once after reboot, '
+                  'and on Xiaomi / Oppo / Vivo enable autostart for this app in system settings.',
                   style: textTheme.bodySmall?.copyWith(
                     color: scheme.outline,
                     height: 1.35,
