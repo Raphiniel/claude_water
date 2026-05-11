@@ -113,6 +113,7 @@ const KPITableModal = ({ type, onClose, reports, waterPoints, navigate }) => {
 const Dashboard = () => {
   const [reports, setReports] = useState([]);
   const [waterPoints, setWaterPoints] = useState([]);
+  const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [showAddWP, setShowAddWP] = useState(false);
@@ -131,12 +132,14 @@ const Dashboard = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [rRes, wpRes] = await Promise.all([
+      const [rRes, wpRes, techRes] = await Promise.all([
         axios.get(`${API}/api/reports/`, { headers: authHeader() }),
         axios.get(`${API}/api/waterpoints/`, { headers: authHeader() }),
+        axios.get(`${API}/api/technicians/`, { headers: authHeader() }),
       ]);
       setReports(rRes.data);
       setWaterPoints(wpRes.data);
+      setTechnicians(techRes.data);
       setFetchError(null);
     } catch (err) {
       const msg = err.response?.data ? JSON.stringify(err.response.data) : err.message;
@@ -177,53 +180,35 @@ const Dashboard = () => {
     }
   };
 
-  const pendingReports = reports.filter(r => r.status === 'PENDING').slice(0, 3);
-  const inProgressReports = reports.filter(r => r.status === 'IN_PROGRESS').slice(0, 3);
+  const pendingReports = reports.filter(r => r.status === 'PENDING');
+  const inProgressReports = reports.filter(r => r.status === 'IN_PROGRESS');
+  const recentReports = [...reports].slice(0, 3);
+  const activeTechs = technicians.filter(t => t.is_available).length;
+  const totalTechs = technicians.length;
+  const uptime = waterPoints.length > 0 ? ((waterPoints.length - pendingReports.length) / waterPoints.length) * 100 : 99.9;
+  const trendPoints = [4, 5, 6, 4, 3, 4, 5];
+  const trendMax = Math.max(...trendPoints);
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: '1.25rem', 
-      height: 'calc(100vh - 100px)',
-      minHeight: 0
-    }}>
+    <div className="dashboard-replica">
       {fetchError && (
         <div className="alert alert-error">API error: {fetchError}</div>
       )}
 
-      {/* ── Main Grid ───────────────────────────────────── */}
-      <div className="dashboard-grid" style={{ 
-        gridTemplateColumns: globeMode === 'map' ? '1fr' : '3.4fr 0.75fr',
-        flex: 1,
-        minHeight: 0,
-        overflow: 'hidden'
-      }}>
-        
-        {/* Left Column */}
-        <div className="left-column" style={{ height: '100%', minHeight: 0 }}>
-          
-          {/* Live Infrastructure Map Panel */}
-          <div className="panel" style={{ padding: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
-            {/* Panel header is hidden in globe mode to match the Project Locations design */}
-            {globeMode === 'map' && (
-              <div className="panel-header" style={{ padding: '1.25rem 1.25rem 0.75rem 1.25rem', marginBottom: 0, zIndex: 20, position: 'relative' }}>
-                <h3 className="panel-title">Live Infrastructure Map</h3>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn-secondary btn-sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>Show Faults</button>
-                  <button className="btn-secondary btn-sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>All Points ▾</button>
-                </div>
+      <div className="dashboard-replica-grid">
+        <section className="dashboard-left">
+          <div className="dashboard-map-card">
+            <div className="dashboard-map-head">
+              <div>
+                <h3>Live Water Point Overview</h3>
+                <p>Real-time overview of water points and system status.</p>
               </div>
-            )}
-            
-            <div style={{
-              height: globeMode === 'map' ? 'calc(100% - 64px)' : '100%',
-              minHeight: globeMode === 'map' ? '0' : '200px',
-              transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-              width: '100%',
-              position: 'relative',
-              zIndex: 10
-            }}>
+              <div className="dashboard-map-filters">
+                <button className="btn-secondary btn-sm">Show Faults</button>
+                <button className="btn-secondary btn-sm">All Points ▾</button>
+              </div>
+            </div>
+            <div className="dashboard-map-body">
               <GlobeHero
                 waterPoints={waterPoints}
                 reports={reports}
@@ -231,116 +216,118 @@ const Dashboard = () => {
                 selectedPos={selectedPos}
                 loading={loading}
                 onModeChange={setGlobeMode}
+                initialMode="map"
+                flatMap={true}
+                showBackButton={false}
               />
             </div>
           </div>
 
-        </div>
-
-        {/* Right Column */}
-        <div className="right-column" style={{ display: globeMode === 'map' ? 'none' : 'flex', height: '100%', overflowY: 'auto', paddingRight: '0.5rem' }}>
-          <div className="four-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
-            <div className="mini-stat-card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveModal('PENDING')}>
-              <div className="mini-stat-header">
-                <div className="mini-stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
-                </div>
-                <span className="mini-stat-label">Active Faults</span>
+          <div className="dashboard-bottom-grid">
+            <div className="dashboard-mini-card">
+              <div className="dashboard-mini-head">
+                <h4>Recent Reports</h4>
+                <button onClick={() => navigate('/reports')}>View all</button>
               </div>
-              <div className="mini-stat-value">{reports.filter(r => r.status === 'PENDING').length}</div>
-            </div>
-
-            <div className="mini-stat-card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveModal('IN_PROGRESS')}>
-              <div className="mini-stat-header">
-                <div className="mini-stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle></svg>
-                </div>
-                <span className="mini-stat-label">In Progress</span>
-              </div>
-              <div className="mini-stat-value">{reports.filter(r => r.status === 'IN_PROGRESS').length}</div>
-            </div>
-
-            <div className="mini-stat-card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveModal('TOTAL')}>
-              <div className="mini-stat-header">
-                <div className="mini-stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
-                </div>
-                <span className="mini-stat-label">Water Points</span>
-              </div>
-              <div className="mini-stat-value">{waterPoints.length}</div>
-            </div>
-          </div>
-          
-          {/* Active Alerts */}
-          <div className="panel">
-            <div className="panel-header">
-              <h3 className="panel-title">Active Alerts</h3>
-              <span style={{ cursor: 'pointer', color: '#888', fontSize: '0.8rem' }} onClick={() => navigate('/reports')}>View all →</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {pendingReports.length === 0 ? (
-                <div style={{ color: '#888', fontSize: '0.85rem' }}>No active alerts</div>
-              ) : pendingReports.map((alert, i) => (
-                <div key={alert.id} style={{ background: i === 0 ? 'rgba(239, 68, 68, 0.05)' : 'rgba(245, 158, 11, 0.05)', border: `1px solid ${i === 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`, borderRadius: '8px', padding: '1rem', display: 'flex', gap: '1rem' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: i === 0 ? '#ef4444' : '#f59e0b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.65rem', color: i === 0 ? '#ef4444' : '#f59e0b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{i === 0 ? 'CRITICAL' : 'HIGH'}</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', margin: '2px 0' }}>{FAULT_LABELS[alert.fault_code] || alert.fault_code}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                      {alert.water_point_code}
+              <div className="dashboard-mini-list">
+                {recentReports.length === 0 ? (
+                  <div className="dashboard-mini-empty">No recent reports</div>
+                ) : recentReports.map((r) => (
+                  <div key={r.id} className="dashboard-mini-row">
+                    <div>
+                      <div className="dashboard-mini-title">{FAULT_LABELS[r.fault_code] || r.fault_code}</div>
+                      <div className="dashboard-mini-sub">{formatDate(r.created_at)}</div>
                     </div>
+                    <span className={`status-badge status-${r.status?.toLowerCase()}`}>{r.status?.replace('_', ' ')}</span>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#888' }}>10 min ago</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Repair Queue */}
-          <div className="panel">
-            <div className="panel-header" style={{ marginBottom: '0.75rem' }}>
-              <h3 className="panel-title">Repair Queue</h3>
-              <span style={{ cursor: 'pointer', color: '#888', fontSize: '0.8rem' }} onClick={() => navigate('/reports')}>View all →</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1rem' }}>
-              {inProgressReports.length === 0 ? (
-                <div style={{ color: '#888', fontSize: '0.85rem' }}>No in-progress repairs</div>
-              ) : inProgressReports.map((report) => (
-                <button key={report.id} className="fault-card-item" onClick={() => navigate('/reports')}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
-                    <span className="status-badge status-in_progress">IN PROGRESS</span>
-                    <span style={{ color: '#aaa', fontSize: '0.72rem' }}>{report.water_point_code}</span>
-                  </div>
-                  <div style={{ marginTop: '0.4rem', fontSize: '0.82rem', color: '#fff' }}>{FAULT_LABELS[report.fault_code] || report.fault_code}</div>
-                </button>
-              ))}
+                ))}
+              </div>
             </div>
 
-            <h3 className="panel-title" style={{ marginBottom: '1rem' }}>Quick Actions</h3>
-            <div className="quick-actions-grid">
-              <div className="quick-action-btn" onClick={() => setShowAddWP(true)}>
-                <svg className="quick-action-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                <span className="quick-action-label">Add Water Point</span>
+            <div className="dashboard-mini-card">
+              <div className="dashboard-mini-head">
+                <h4>Maintenance Activity</h4>
+                <button onClick={() => navigate('/reports')}>View all</button>
               </div>
-              <div className="quick-action-btn" onClick={() => navigate('/sms')}>
-                <svg className="quick-action-icon" style={{ color: '#3b82f6' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                <span className="quick-action-label">Send SMS Alert</span>
+              <div className="dashboard-mini-list">
+                {inProgressReports.length === 0 ? (
+                  <div className="dashboard-mini-empty">No current maintenance</div>
+                ) : inProgressReports.slice(0, 3).map((r) => (
+                  <div key={r.id} className="dashboard-mini-row">
+                    <div>
+                      <div className="dashboard-mini-title">{FAULT_LABELS[r.fault_code] || r.fault_code}</div>
+                      <div className="dashboard-mini-sub">{r.water_point_code}</div>
+                    </div>
+                    <span className="dashboard-mini-time">in progress</span>
+                  </div>
+                ))}
               </div>
-              <div className="quick-action-btn" onClick={fetchData}>
-                <svg className="quick-action-icon" style={{ color: '#10b981' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                <span className="quick-action-label">Refresh Data</span>
+            </div>
+
+            <div className="dashboard-mini-card">
+              <div className="dashboard-mini-head">
+                <h4>Water Points Trend (7 Days)</h4>
+                <button>7 days</button>
               </div>
-              <div className="quick-action-btn" onClick={() => navigate('/waterpoints')}>
-                <svg className="quick-action-icon" style={{ color: '#a3e635' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><map name="map"></map><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
-                <span className="quick-action-label">View Full Map</span>
+              <div className="dashboard-trend">
+                {trendPoints.map((v, idx) => (
+                  <div key={`${idx}-${v}`} className="dashboard-trend-col">
+                    <div className="dashboard-trend-dot" style={{ bottom: `${(v / trendMax) * 78}%` }} />
+                    <div className="dashboard-trend-line" style={{ height: `${(v / trendMax) * 80}%` }} />
+                    <span>May {18 + idx}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+        </section>
 
-        </div>
+        <aside className="dashboard-kpi-rail">
+          <button className="dashboard-kpi-card" onClick={() => setActiveModal('PENDING')}>
+            <div className="dashboard-kpi-head">
+              <span className="dashboard-kpi-dot red" />
+              <span>Active Faults</span>
+            </div>
+            <strong>{pendingReports.length}</strong>
+            <small>{pendingReports.length === 0 ? 'No active faults' : 'Needs technician assignment'}</small>
+          </button>
+
+          <button className="dashboard-kpi-card" onClick={() => setActiveModal('IN_PROGRESS')}>
+            <div className="dashboard-kpi-head">
+              <span className="dashboard-kpi-dot amber" />
+              <span>In Progress</span>
+            </div>
+            <strong>{inProgressReports.length}</strong>
+            <small>{inProgressReports.length === 0 ? 'No issues in progress' : 'Under active repair'}</small>
+          </button>
+
+          <button className="dashboard-kpi-card" onClick={() => setActiveModal('TOTAL')}>
+            <div className="dashboard-kpi-head">
+              <span className="dashboard-kpi-dot blue" />
+              <span>Water Points</span>
+            </div>
+            <strong>{waterPoints.length}</strong>
+            <small>All systems operational</small>
+          </button>
+
+          <div className="dashboard-kpi-card">
+            <div className="dashboard-kpi-head">
+              <span className="dashboard-kpi-dot green" />
+              <span>System Uptime</span>
+            </div>
+            <strong>{uptime.toFixed(1)}%</strong>
+            <small>Last 30 days</small>
+          </div>
+
+          <div className="dashboard-kpi-card">
+            <div className="dashboard-kpi-head">
+              <span className="dashboard-kpi-dot purple" />
+              <span>Technicians Available</span>
+            </div>
+            <strong>{activeTechs} / {totalTechs || 0}</strong>
+            <small>{activeTechs > 0 ? 'Online now' : 'No technicians online'}</small>
+          </div>
+        </aside>
       </div>
 
       {/* ── Add Water Point Modal ───────────────────────── */}

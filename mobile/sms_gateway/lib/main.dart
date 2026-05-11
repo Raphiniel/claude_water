@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
@@ -13,6 +14,16 @@ const _kPrefUrl = 'gateway_webhook_url';
 const _kPrefSecret = 'gateway_shared_secret';
 const _kPrefForward = 'gateway_forward';
 const _kPrefReply = 'gateway_reply';
+
+/// Top-level handler required by [Telephony.listenIncomingSms] for background SMS.
+/// Must stay a library-level function (not a class/instance method).
+@pragma('vm:entry-point')
+Future<void> waterwiseSmsBackgroundHandler(SmsMessage message) async {
+  await processInboundSms(
+    message,
+    onLog: (s) => debugPrint('[WaterWise SMS bg] $s'),
+  );
+}
 
 Future<void> processInboundSms(
   SmsMessage msg, {
@@ -277,11 +288,12 @@ class _GatewayHomePageState extends State<GatewayHomePage>
             if (mounted) _addLog(s);
           });
         },
-        listenInBackground: false,
+        onBackgroundMessage: waterwiseSmsBackgroundHandler,
+        listenInBackground: true,
       );
       if (!mounted) return;
       setState(() => _listenerReady = true);
-      _addLog('Listening for incoming SMS (foreground)');
+      _addLog('Listening for incoming SMS (foreground + background)');
     } catch (e) {
       if (mounted) {
         setState(() => _listenerReady = false);

@@ -68,18 +68,26 @@ export const AuthProvider = ({ children }) => {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
+        const url = String(originalRequest?.url || '');
+        // Never attach refresh logic to auth endpoints — a failed refresh/login would recurse forever
+        const isAuthRequest =
+          url.includes('/api/token/refresh/') ||
+          (url.includes('/api/token/') && String(originalRequest?.method || '').toLowerCase() === 'post');
 
         // Only retry once (avoid infinite loops)
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+          error.response?.status === 401 &&
+          !originalRequest._retry &&
+          !isAuthRequest
+        ) {
           originalRequest._retry = true;
           const fresh = await refreshAccessToken();
           if (fresh) {
             originalRequest.headers['Authorization'] = `Bearer ${fresh}`;
             setUser({ token: fresh });
             return axios(originalRequest);
-          } else {
-            logout();
           }
+          logout();
         }
         return Promise.reject(error);
       },

@@ -15,15 +15,32 @@ const STATUSES = ['ALL', 'PENDING', 'IN_PROGRESS', 'RESOLVED'];
 
 const AssignModal = ({ report, onClose, onAssigned, authHeader }) => {
   const [technicians, setTechnicians] = useState([]);
+  const [nearby, setNearby] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get(`${API}/api/technicians/`, { headers: authHeader() })
-      .then(r => { setTechnicians(r.data); setLoading(false); })
-      .catch(() => { setError('Failed to load technicians'); setLoading(false); });
-  }, []);
+    let mounted = true;
+    Promise.all([
+      axios.get(`${API}/api/technicians/`, { headers: authHeader() }),
+      axios.get(`${API}/api/reports/${report.id}/nearby-technicians/`, { headers: authHeader() }),
+    ])
+      .then(([allRes, nearbyRes]) => {
+        if (!mounted) return;
+        setTechnicians(allRes.data);
+        setNearby(nearbyRes.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setTechnicians([]);
+        setNearby([]);
+        setError(err.response?.data?.error || 'Failed to load technicians');
+        setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, [authHeader, report.id]);
 
   const assign = async (technicianId) => {
     setAssigning(true);
@@ -66,6 +83,56 @@ const AssignModal = ({ report, onClose, onAssigned, authHeader }) => {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
           Auto-assign Nearest Technician
         </button>
+
+        <div style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1rem', marginBottom: '1rem' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Nearby technicians
+          </p>
+          {loading ? (
+            <div className="loading" style={{ height: '70px' }}>Loading nearby technicians...</div>
+          ) : nearby.length === 0 ? (
+            <div className="empty-state" style={{ padding: '1rem' }}>No technicians with location data near this water point.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '210px', overflowY: 'auto' }}>
+              {nearby.map(t => (
+                <button
+                  key={`nearby-${t.id}`}
+                  onClick={() => assign(t.id)}
+                  disabled={assigning || !t.is_available}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.7rem 0.9rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(59,130,246,0.25)',
+                    background: t.is_available ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)',
+                    color: t.is_available ? 'var(--text-main)' : 'var(--text-muted)',
+                    cursor: t.is_available ? 'pointer' : 'not-allowed',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.84rem' }}>{t.name}</div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{t.phone}</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#60a5fa' }}>
+                      {t.distance_km} km
+                    </span>
+                    <span style={{
+                      fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px',
+                      background: t.is_available ? 'rgba(16,185,129,0.15)' : 'rgba(148,163,184,0.15)',
+                      color: t.is_available ? 'var(--success)' : 'var(--text-muted)',
+                    }}>
+                      {t.is_available ? 'Available' : 'Busy'}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1rem' }}>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>

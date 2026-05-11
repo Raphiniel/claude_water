@@ -1,0 +1,702 @@
+{
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\manage.py": {
+    "mtime": 1775558620.4537587,
+    "hash": "482b4fa3e73ba5413c52502680db7e1c"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\admin.py": {
+    "mtime": 1775558630.589888,
+    "hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\apps.py": {
+    "mtime": 1775558631.3144472,
+    "hash": "10b68881b541de7b147f6a042409de98"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\models.py": {
+    "mtime": 1775993890.4485989,
+    "hash": "3bb47ff13e952565bdc8c1e407b88e3a"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\serializers.py": {
+    "mtime": 1775993952.075879,
+    "hash": "b92ae6af2e18ac9740d8cddf6340513f"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\tests.py": {
+    "mtime": 1775558631.3489182,
+    "hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\urls.py": {
+    "mtime": 1777719642.0762436,
+    "hash": "65f7c60e17ff44aa67edf3684c318b58"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\views.py": {
+    "mtime": 1778090661.762458,
+    "hash": "d05e6b799fe014de7f880d2f78765a88"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\__init__.py": {
+    "mtime": 1775558631.599921,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\migrations\\0001_initial.py": {
+    "mtime": 1775559623.5534003,
+    "hash": "10636dfb0de2c2dd77f4fe0451312915"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\migrations\\0002_systemsetting.py": {
+    "mtime": 1775993930.5833607,
+    "hash": "a8eea675c048556aa13d2067a0e97514"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\api\\migrations\\__init__.py": {
+    "mtime": 1775558631.6547365,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\core\\asgi.py": {
+    "mtime": 1775558620.4794178,
+    "hash": "0aa48cff01f5f83fb99a779f78350811"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\core\\settings.py": {
+    "mtime": 1778090661.762458,
+    "hash": "fba4e06d1b9bcffc023a19cc1a5aefa5"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\core\\urls.py": {
+    "mtime": 1778090661.7634544,
+    "hash": "c1dc58274966929309c895c18bcc0e03"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\core\\wsgi.py": {
+    "mtime": 1775558620.5465987,
+    "hash": "992013d4cc7fa84a0c05379687e93ebd"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\core\\__init__.py": {
+    "mtime": 1775558620.5481007,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\admin.py": {
+    "mtime": 1775995199.2635262,
+    "hash": "ef4c241c5311eee11a93e9366f492a72"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\apps.py": {
+    "mtime": 1775995199.3003926,
+    "hash": "f13e90f2bfd5b96f306b845b0d4d1b46"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\models.py": {
+    "mtime": 1777407049.867932,
+    "hash": "c49abda48e544c8c77da55875315398a"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\serializers.py": {
+    "mtime": 1777407049.8694396,
+    "hash": "74942da96dd4c9992265d3d39ff5a25f"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\sms_service.py": {
+    "mtime": 1778090661.7644522,
+    "hash": "c3bc053fc49dd910b8be4002bc994401"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\tests.py": {
+    "mtime": 1775995199.3392718,
+    "hash": "e08f0582500f6562bf0a931ef9503b39"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\urls.py": {
+    "mtime": 1778355212.8424983,
+    "hash": "91c8b90b6500701abd20711567ec0cf5"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\validators.py": {
+    "mtime": 1777407049.9515972,
+    "hash": "42d646f2d23a663964813273975a8983"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\views.py": {
+    "mtime": 1778355212.8415024,
+    "hash": "48d0a71680f1d2b0dd3af82c53168355"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\__init__.py": {
+    "mtime": 1775995199.3596518,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\management\\__init__.py": {
+    "mtime": 1776004438.307019,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\management\\commands\\retry_sync.py": {
+    "mtime": 1777407043.498171,
+    "hash": "87f49a6bfe0097246baca83bd67b2ddc"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\management\\commands\\__init__.py": {
+    "mtime": 1776004438.3075507,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\migrations\\0001_initial.py": {
+    "mtime": 1775995308.7254262,
+    "hash": "23eabef50d6f83cb468b3ff9220a666b"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\migrations\\0002_waterpoint_latitude_waterpoint_longitude.py": {
+    "mtime": 1775996249.5194066,
+    "hash": "44891c65d2435caae4559f369136f98b"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\migrations\\0003_technician_faultreport_assigned_to.py": {
+    "mtime": 1777407049.8659203,
+    "hash": "a0cd872363a19b0cd958662c5e0f9276"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\gateway\\migrations\\__init__.py": {
+    "mtime": 1775995199.3632197,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\eslint.config.js": {
+    "mtime": 1775557997.8412366,
+    "hash": "49c8473bcfcec3aef596a5fb04a6df06"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\vite.config.js": {
+    "mtime": 1777407050.7936203,
+    "hash": "93565bfbf1621a6fcdcb5d550480b56c"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\Analytics.jsx": {
+    "mtime": 1778090661.7634544,
+    "hash": "fff8d301fb3aa59027a724e712302dda"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\apiConfig.js": {
+    "mtime": 1778090661.7634544,
+    "hash": "9d07c9744e89968a383aaf0e1da8047b"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\App.jsx": {
+    "mtime": 1778355212.8424983,
+    "hash": "e2478e4c9a876c6d48a8b6f9a0689c9a"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\AuthContext.jsx": {
+    "mtime": 1778090661.7634544,
+    "hash": "e9d97c8f13b27b4890ff8df066b78fbe"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\GlobeHero.jsx": {
+    "mtime": 1778355212.8424983,
+    "hash": "707bd09dce171c5b5ddcb970d8d5ace6"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\Help.jsx": {
+    "mtime": 1778090661.762458,
+    "hash": "7d47422157c0f9192e58ef41780b6e4d"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\Layout.jsx": {
+    "mtime": 1778161497.3586226,
+    "hash": "020d4842249e87e8303e5f943b303655"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\Login.jsx": {
+    "mtime": 1778090661.601462,
+    "hash": "ab9c4d60bf2ab4e891b52514840db233"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\main.jsx": {
+    "mtime": 1775557998.529927,
+    "hash": "e13723e2574429d9a6d849727e3ff695"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\Map3DViewer.jsx": {
+    "mtime": 1777795517.8274786,
+    "hash": "e213be0d5a76d12bcbca87101af568ea"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\MapComponent.jsx": {
+    "mtime": 1775996298.6655602,
+    "hash": "cf422fcb4792d6ceb0a6e0f698467f5a"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\ProjectMap.jsx": {
+    "mtime": 1778355212.8305314,
+    "hash": "904c0628188126a206eabbacb223c00e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\Reports.jsx": {
+    "mtime": 1778355212.8424983,
+    "hash": "8c04db12bc3007ce1e72f889f1c69ca8"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\Settings.jsx": {
+    "mtime": 1778090661.7644522,
+    "hash": "7ff3aeb18f2e2e72cce66635abd469e4"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\Sms.jsx": {
+    "mtime": 1778090661.7634544,
+    "hash": "5c593379074a5c4876db2edaeb8da867"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\TableRowMenuPortal.jsx": {
+    "mtime": 1778322600.9959068,
+    "hash": "27aa0aa443a4ee2995b040e8c7d4522e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\Technicians.jsx": {
+    "mtime": 1778090661.7634544,
+    "hash": "ee2713a34652fbe3d2a214182be67758"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\WaterPoints.jsx": {
+    "mtime": 1778090661.762458,
+    "hash": "ed8dcc4beaf9d6863b736a30bce03b3e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\build.gradle.kts": {
+    "mtime": 1778156127.2780502,
+    "hash": "803fe22651fbe96ed401eb0b66a492d1"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\gradlew": {
+    "mtime": 1778009846.5800815,
+    "hash": "7f1cd7eb3f75a1dc85cd37753972a6e2"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\settings.gradle.kts": {
+    "mtime": 1778009774.283008,
+    "hash": "f276a44edd917afd836899357fdae60e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\build.gradle.kts": {
+    "mtime": 1778090661.7634544,
+    "hash": "2ca67545205c9d175e85cb28c6588079"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\java\\io\\flutter\\plugins\\GeneratedPluginRegistrant.java": {
+    "mtime": 1778014078.3861723,
+    "hash": "32f25cdeaaa1584db926f8aa5194ab13"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\kotlin\\com\\claudewater\\sms_gateway\\MainActivity.kt": {
+    "mtime": 1778009766.259503,
+    "hash": "ff3341a5d5236b83ff21ab91b26ba862"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Flutter\\ephemeral\\flutter_lldb_helper.py": {
+    "mtime": 1778010037.8329885,
+    "hash": "98fc75412162af387e2e3461e4e58094"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\AppDelegate.swift": {
+    "mtime": 1774839312.6240768,
+    "hash": "9e1de9c329a3fe4931876063de95132b"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\GeneratedPluginRegistrant.h": {
+    "mtime": 1778010047.3838122,
+    "hash": "decb9041b5e91a07e66f4664e5dac408"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\GeneratedPluginRegistrant.m": {
+    "mtime": 1778014078.4756458,
+    "hash": "5e9ff41f8d4f1671dbf59ad016120df0"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Runner-Bridging-Header.h": {
+    "mtime": 1774839312.646808,
+    "hash": "7ad7b5cea096132de13ba526b2b9efbe"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\SceneDelegate.swift": {
+    "mtime": 1774839312.6557512,
+    "hash": "0c3e86af131f6a9e547c80b5ed058914"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\RunnerTests\\RunnerTests.swift": {
+    "mtime": 1778009797.4239004,
+    "hash": "24e5d095048eb86c30423f4e04b6e57b"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\lib\\main.dart": {
+    "mtime": 1778090661.762458,
+    "hash": "e241db541de7dfa8f71a39d25398e01e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\linux\\flutter\\generated_plugin_registrant.cc": {
+    "mtime": 1778010046.9668279,
+    "hash": "d07afe003d5837167bdd357d593f20a0"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\linux\\flutter\\generated_plugin_registrant.h": {
+    "mtime": 1778010046.6598625,
+    "hash": "d295462c9da9f7fef22dc86c34492318"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\linux\\runner\\main.cc": {
+    "mtime": 1774839313.9489381,
+    "hash": "539395bcd63dba20afed0838d136189f"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\linux\\runner\\my_application.cc": {
+    "mtime": 1778009803.0949764,
+    "hash": "d953868f670c126847aa188225817dc8"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\linux\\runner\\my_application.h": {
+    "mtime": 1774839313.9668615,
+    "hash": "ffa1a7c0a2ad45a2c14a921596516ff8"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\Flutter\\GeneratedPluginRegistrant.swift": {
+    "mtime": 1778014078.4846375,
+    "hash": "a357655862f911fac276652186d97f35"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\Runner\\AppDelegate.swift": {
+    "mtime": 1774839314.0554643,
+    "hash": "4b52e0b89ebfef9baf45b04548c463d6"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\Runner\\MainFlutterWindow.swift": {
+    "mtime": 1774839314.102143,
+    "hash": "93c22dae2d93f3dc1402e121901f582b"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\RunnerTests\\RunnerTests.swift": {
+    "mtime": 1778009815.079799,
+    "hash": "8059f5d27a19c556eeafb49b3f9b7bdd"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\android\\build.gradle": {
+    "mtime": 1778017029.5108464,
+    "hash": "d2815dbefa5d3ac383f7e79f38cb01bc"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\android\\settings.gradle": {
+    "mtime": 1778014072.4732943,
+    "hash": "ab5bb3441fda6291c9b37f6465d79593"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\android\\src\\main\\kotlin\\com\\shounakmulay\\telephony\\PermissionsController.kt": {
+    "mtime": 1778014072.4703012,
+    "hash": "3bf0cb6e6ed6bf54c805b698812f0fb5"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\android\\src\\main\\kotlin\\com\\shounakmulay\\telephony\\TelephonyPlugin.kt": {
+    "mtime": 1778014072.4683056,
+    "hash": "ac21222a7f301184ea7ddff7f11a47ab"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\android\\src\\main\\kotlin\\com\\shounakmulay\\telephony\\sms\\ContextHolder.kt": {
+    "mtime": 1778014072.4104614,
+    "hash": "1f7471837e25ce2d7db8983b9a656307"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\android\\src\\main\\kotlin\\com\\shounakmulay\\telephony\\sms\\IncomingSmsHandler.kt": {
+    "mtime": 1778014072.41146,
+    "hash": "00eb006543a65e271ec1074c52591e11"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\android\\src\\main\\kotlin\\com\\shounakmulay\\telephony\\sms\\SmsController.kt": {
+    "mtime": 1778014072.421432,
+    "hash": "f39d5c8291c75da8b2cbfa6f38922632"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\android\\src\\main\\kotlin\\com\\shounakmulay\\telephony\\sms\\SmsMethodCallHandler.kt": {
+    "mtime": 1778014072.4623218,
+    "hash": "a154d5c8e15ee16d1b18ed50d4d63c66"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\android\\src\\main\\kotlin\\com\\shounakmulay\\telephony\\utils\\Constants.kt": {
+    "mtime": 1778014072.4074695,
+    "hash": "7c2b25e00b36ae9e3655fc0a896b5cef"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\android\\src\\main\\kotlin\\com\\shounakmulay\\telephony\\utils\\SmsEnums.kt": {
+    "mtime": 1778014072.408467,
+    "hash": "50ac500da468bc4cdb8aa006336f7ade"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\ios\\Classes\\SwiftTelephonyPlugin.swift": {
+    "mtime": 1778014072.4872568,
+    "hash": "f1ea89b966ed41a683b919a8e29f2665"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\ios\\Classes\\TelephonyPlugin.h": {
+    "mtime": 1778014072.490247,
+    "hash": "17974f10d63fde7ae7e9b7202ffe4737"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\ios\\Classes\\TelephonyPlugin.m": {
+    "mtime": 1778014072.4892507,
+    "hash": "a5203daad9ae7e01efadacd6d1a7cf6c"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\lib\\constants.dart": {
+    "mtime": 1778014072.4024837,
+    "hash": "5ee9e04f3aee99cc01994deaf9d9bf49"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\lib\\filter.dart": {
+    "mtime": 1778014072.4014869,
+    "hash": "812863c83558a704cfa046d38c2bf030"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\lib\\telephony.dart": {
+    "mtime": 1778014072.394503,
+    "hash": "3f115a0276840cf4f27b25a0a99c2a8b"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\test\\widget_test.dart": {
+    "mtime": 1778090661.7644522,
+    "hash": "099246cee7daf248c3e980b1940db486"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\tool\\generate_app_icon.py": {
+    "mtime": 1778090885.278441,
+    "hash": "705698cc741f5730734dbdf47feb11ce"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\flutter\\generated_plugin_registrant.cc": {
+    "mtime": 1778014078.436224,
+    "hash": "e7500c1188ceba3c45cd6b6ccef35a51"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\flutter\\generated_plugin_registrant.h": {
+    "mtime": 1778010047.1176605,
+    "hash": "0ea33875f9f8e118f9c2ded03e2e2835"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\runner\\flutter_window.cpp": {
+    "mtime": 1774839315.0286458,
+    "hash": "2f463f9b7da67a2d692a012f9ea85e0c"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\runner\\flutter_window.h": {
+    "mtime": 1774839315.0637047,
+    "hash": "7defcc89d4a26d56e801241d624d48fb"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\runner\\main.cpp": {
+    "mtime": 1778009833.800977,
+    "hash": "163777752b967469f1612514383b1479"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\runner\\resource.h": {
+    "mtime": 1774839315.1413324,
+    "hash": "1ade5dd15e613479a15e8832ed276f2b"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\runner\\utils.cpp": {
+    "mtime": 1774839315.2230096,
+    "hash": "432461b09d862a2f8dadf380ff0e34e5"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\runner\\utils.h": {
+    "mtime": 1774839315.2519116,
+    "hash": "fd81e143f5614eb6fd75efe539002853"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\runner\\win32_window.cpp": {
+    "mtime": 1774839315.2672486,
+    "hash": "571eb8234dbc2661be03aa5f2a4d2fca"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\runner\\win32_window.h": {
+    "mtime": 1774839315.3041463,
+    "hash": "7569387d58711ab975940f4df3b4bcda"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\backend\\requirements.txt": {
+    "mtime": 1778355212.8424983,
+    "hash": "d3e415e984c3b0092ab81f771e371002"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\index.html": {
+    "mtime": 1775996283.92706,
+    "hash": "e86d95773f33fff6e6107ded96f0120e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\README.md": {
+    "mtime": 1775557998.5750432,
+    "hash": "a28dc4cb878325f3e9e5649f3e1469ac"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\analysis_options.yaml": {
+    "mtime": 1778090661.7634544,
+    "hash": "0408db84b3bbbb9693a4942360aad032"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\pubspec.yaml": {
+    "mtime": 1778156285.2864943,
+    "hash": "b88ed080c381e9e5ab68943be02bbbb8"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\README.md": {
+    "mtime": 1778090661.7634544,
+    "hash": "65a466f297f36578dc2e98eacbf5bda4"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\LaunchImage.imageset\\README.md": {
+    "mtime": 1774839313.283089,
+    "hash": "f7ee1b402881509d197f34963e569927"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\linux\\CMakeLists.txt": {
+    "mtime": 1778009798.4107008,
+    "hash": "498ba4bf0f421a32487f54f3c796e093"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\linux\\flutter\\CMakeLists.txt": {
+    "mtime": 1774839313.9011745,
+    "hash": "2195470ce31675d31db5a37590d011f6"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\linux\\runner\\CMakeLists.txt": {
+    "mtime": 1774839313.938081,
+    "hash": "30cc1614b16214b66c014af09ba699eb"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\CHANGELOG.md": {
+    "mtime": 1778014072.636857,
+    "hash": "ffdf80589e6a53897fa49078f70850af"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\pubspec.yaml": {
+    "mtime": 1778090661.7644522,
+    "hash": "67ebd0c748f22d8e21da05de966ffad4"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\packages\\telephony\\README.md": {
+    "mtime": 1778014072.484264,
+    "hash": "fa9171ea2774d5c60a6131a311cd7fd1"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\web\\index.html": {
+    "mtime": 1778090661.7644522,
+    "hash": "e528abc75e35b427c76a791286c48e4d"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\CMakeLists.txt": {
+    "mtime": 1778009832.217062,
+    "hash": "3e25665c90636eee419f1806feb95d9f"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\flutter\\CMakeLists.txt": {
+    "mtime": 1774839314.8596191,
+    "hash": "bbf66fed5180bd9ae8198b8d7c4a0001"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\windows\\runner\\CMakeLists.txt": {
+    "mtime": 1774839315.0124137,
+    "hash": "028602ab9754bffe716659ada7590d29"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\public\\favicon.svg": {
+    "mtime": 1775557999.8038557,
+    "hash": "7e840862161341271697daa99a40d76b"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\public\\icons.svg": {
+    "mtime": 1775557999.9103155,
+    "hash": "3b4fcfcf393eca4d264dca4a4663bc37"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\assets\\hero.png": {
+    "mtime": 1775557999.259106,
+    "hash": "5cf2b0762834cdddc0dd3ec1397b5011"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\assets\\react.svg": {
+    "mtime": 1775558000.154304,
+    "hash": "f0402b67b6ce880f65666bb49e841696"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\frontend\\src\\assets\\vite.svg": {
+    "mtime": 1775558000.3338342,
+    "hash": "9960a24288958394ac50e57ff638b036"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\res\\drawable-hdpi\\ic_launcher_foreground.png": {
+    "mtime": 1778091515.9954016,
+    "hash": "8fb44b385bc640446149c6c461d1e3c0"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\res\\drawable-mdpi\\ic_launcher_foreground.png": {
+    "mtime": 1778091515.9886277,
+    "hash": "7d2fd4b13a85a7cb3b8a211989e70fb5"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\res\\drawable-xhdpi\\ic_launcher_foreground.png": {
+    "mtime": 1778091515.9954016,
+    "hash": "d4436018ad9b095f546adbf89cf8b616"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\res\\drawable-xxhdpi\\ic_launcher_foreground.png": {
+    "mtime": 1778091515.9954016,
+    "hash": "b9c12afe04abb9c9c891db997f6a9360"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\res\\drawable-xxxhdpi\\ic_launcher_foreground.png": {
+    "mtime": 1778091515.9963841,
+    "hash": "774ab45fb6eab615fd0623d762e86cf0"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher.png": {
+    "mtime": 1778091515.9886277,
+    "hash": "0e43058f34e4317939a449a19f47fb11"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.png": {
+    "mtime": 1778091515.9886277,
+    "hash": "e000e8b7662d72ce1f8f72f19a047692"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher.png": {
+    "mtime": 1778091515.9886277,
+    "hash": "290b21d860ef4f90f1d784bb8677d727"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.png": {
+    "mtime": 1778091515.9886277,
+    "hash": "fbdfb06decc78f028ad4e63d3004afe6"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher.png": {
+    "mtime": 1778091515.9886277,
+    "hash": "331244f089726b7e69d95aadf3286d0b"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\assets\\images\\app_icon.png": {
+    "mtime": 1778091468.246,
+    "hash": "2ce301a6956d7afdeddb9afea3b169b1"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\assets\\images\\app_icon_foreground.png": {
+    "mtime": 1778091469.822,
+    "hash": "2ce301a6956d7afdeddb9afea3b169b1"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-1024x1024@1x.png": {
+    "mtime": 1778091518.0568948,
+    "hash": "b5e0fd5177e98284ed88bb8c3a99ec7c"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-20x20@1x.png": {
+    "mtime": 1778091518.0528755,
+    "hash": "a4ba1611d4f686d3d6ef6b732d6b3653"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-20x20@2x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "2a0c4605865d69f8e152d495bc7172ee"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-20x20@3x.png": {
+    "mtime": 1778091518.0528755,
+    "hash": "08636051a21c19fe19fc1b056e2dae1e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-29x29@1x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "d0f7c576dacd99c3678bce90464efaf3"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-29x29@2x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "10542740cdfd28995c3a2bbdb6930e16"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-29x29@3x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "17e3d8d79538a7523f90786a77a6c829"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-40x40@1x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "2a0c4605865d69f8e152d495bc7172ee"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-40x40@2x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "e693ef429c93cda2ba9a9d76b7dc689e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-40x40@3x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "383fe73fe116d0543f5c4582e7cac671"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-50x50@1x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "93264ec050be200add588ec767de9d76"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-50x50@2x.png": {
+    "mtime": 1778091518.0528755,
+    "hash": "056071f37f0520d1b5f58befc5e3283d"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-57x57@1x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "178f0d1e929a62183f5ef788cda1406f"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-57x57@2x.png": {
+    "mtime": 1778091518.0528755,
+    "hash": "8f5272b8b4f840446cb14bdb9f5c06c3"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-60x60@2x.png": {
+    "mtime": 1778091518.0528755,
+    "hash": "383fe73fe116d0543f5c4582e7cac671"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-60x60@3x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "9d31a53b6c509d9984936626fa49cff3"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-72x72@1x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "fa2660bb325655a34c0ac81749c1fa56"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-72x72@2x.png": {
+    "mtime": 1778091518.0548906,
+    "hash": "63865e25954919f8b9536054bcfa80e7"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-76x76@1x.png": {
+    "mtime": 1778091518.0528755,
+    "hash": "d882f11165063a72f5bdd5e7827644b7"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-76x76@2x.png": {
+    "mtime": 1778091518.0528755,
+    "hash": "83a93a80948f7b851375dd6e59a1c875"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-83.5x83.5@2x.png": {
+    "mtime": 1778091518.0528755,
+    "hash": "c2791be10d28ef7b331192a09e177202"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\LaunchImage.imageset\\LaunchImage.png": {
+    "mtime": 1775837569.4996922,
+    "hash": "978c1bee49d7ad5fc1a4d81099b13e18"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\LaunchImage.imageset\\LaunchImage@2x.png": {
+    "mtime": 1775837569.4490259,
+    "hash": "978c1bee49d7ad5fc1a4d81099b13e18"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\ios\\Runner\\Assets.xcassets\\LaunchImage.imageset\\LaunchImage@3x.png": {
+    "mtime": 1775837569.4455035,
+    "hash": "978c1bee49d7ad5fc1a4d81099b13e18"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_1024.png": {
+    "mtime": 1775837569.4399705,
+    "hash": "c9becc9105f8cabce934d20c7bfb6aac"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_128.png": {
+    "mtime": 1775837566.5791411,
+    "hash": "3ded30823804caaa5ccc944067c54a36"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_16.png": {
+    "mtime": 1775837569.415848,
+    "hash": "8bf511604bc6ed0a6aeb380c5113fdcf"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_256.png": {
+    "mtime": 1775837569.4414814,
+    "hash": "dfe2c93d1536ae02f085cc63faa3430e"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_32.png": {
+    "mtime": 1775837569.4233985,
+    "hash": "8e0ae58e362a6636bdfccbc04da2c58c"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_512.png": {
+    "mtime": 1775837569.4002585,
+    "hash": "0ad44039155424738917502c69667699"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_64.png": {
+    "mtime": 1775837566.5781431,
+    "hash": "04e7b6ef05346c70b663ca1d97de3ad5"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\web\\favicon.png": {
+    "mtime": 1774839314.6727884,
+    "hash": "5dcef449791fa27946b3d35ad8803796"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\web\\icons\\Icon-192.png": {
+    "mtime": 1774839314.7212121,
+    "hash": "ac9a721a12bbc803b44f645561ecb1e1"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\web\\icons\\Icon-512.png": {
+    "mtime": 1774839314.741714,
+    "hash": "96e752610906ba2a93c65f8abe1645f1"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\web\\icons\\Icon-maskable-192.png": {
+    "mtime": 1775837570.476266,
+    "hash": "c457ef57daa1d16f64b27b786ec2ea3c"
+  },
+  "C:\\Users\\Raphiniel R Murwira\\Desktop\\CLAUDE WATER\\mobile\\sms_gateway\\web\\icons\\Icon-maskable-512.png": {
+    "mtime": 1775837570.47428,
+    "hash": "301a7604d45b3e739efc881eb04896ea"
+  }
+}

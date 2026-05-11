@@ -1,0 +1,634 @@
+{
+  "communities": {
+    "0": [
+      "api_apps_apiconfig",
+      "appconfig",
+      "backend_api_apps_py",
+      "core_settings_env_bool",
+      "core_settings_env_list",
+      "core_settings_rationale_1",
+      "frontend_src_analytics_jsx",
+      "frontend_src_app_jsx",
+      "frontend_src_authcontext_jsx",
+      "frontend_src_help_jsx",
+      "frontend_src_layout_jsx",
+      "frontend_src_login_jsx",
+      "frontend_src_main_jsx",
+      "frontend_src_reports_jsx",
+      "frontend_src_settings_jsx",
+      "frontend_src_sms_jsx",
+      "frontend_src_waterpoints_jsx",
+      "gateway_apps_gatewayconfig",
+      "src_analytics_analytics",
+      "src_app_app",
+      "src_app_dashboard",
+      "src_app_fault_labels",
+      "src_app_formatdate",
+      "src_app_kpitablemodal",
+      "src_app_protectedroute",
+      "src_authcontext_authcontext",
+      "src_authcontext_authprovider",
+      "src_authcontext_useauth",
+      "src_help_help",
+      "src_help_sections",
+      "src_layout_iconanalytics",
+      "src_layout_iconbell",
+      "src_layout_icondashboard",
+      "src_layout_iconhelp",
+      "src_layout_iconlogout",
+      "src_layout_iconmap",
+      "src_layout_iconreports",
+      "src_layout_iconsearch",
+      "src_layout_iconsettings",
+      "src_layout_iconsms",
+      "src_layout_icontechnician",
+      "src_layout_iconwaterpoint",
+      "src_layout_layout",
+      "src_layout_timeago",
+      "src_login_login",
+      "src_reports_assignmodal",
+      "src_reports_reports",
+      "src_reports_statuses",
+      "src_settings_settings",
+      "src_sms_sms",
+      "src_waterpoints_kpidetailmodal"
+    ],
+    "1": [
+      "backend_manage_py",
+      "backend_manage_rationale_8",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_addlog",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_build",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_card",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_color",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_container",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_didchangeapplifecyclestate",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_dispose",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_divider",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_function",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_gatewayhomepage",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_gatewayhomepagestate",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_herocard",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_initstate",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_log",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_material",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_materialapp",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_padding",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_persist",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_scaffold",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_sectioncard",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_sizedbox",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_statusbanner",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_text",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_lib_main_dart_waterwiseapp",
+      "dart_convert",
+      "mobile_sms_gateway_lib_main_dart",
+      "mobile_sms_gateway_linux_runner_main_cc",
+      "mobile_sms_gateway_test_widget_test_dart",
+      "mobile_sms_gateway_tool_generate_app_icon_py",
+      "package_flutter_material_dart",
+      "package_flutter_test_flutter_test_dart",
+      "package_http_http_dart",
+      "package_permission_handler_permission_handler_dart",
+      "package_shared_preferences_shared_preferences_dart",
+      "package_sms_gateway_main_dart",
+      "package_telephony_telephony_dart",
+      "runner_main_main",
+      "tool_generate_app_icon_draw_mark",
+      "tool_generate_app_icon_rationale_1"
+    ],
+    "2": [
+      "api_models_faultreport",
+      "api_models_faultreport_str",
+      "api_models_systemsetting",
+      "api_serializers_faultreportserializer",
+      "api_serializers_meta",
+      "api_serializers_passwordchangeserializer",
+      "api_serializers_systemsettingserializer",
+      "api_views_faultreportviewset",
+      "api_views_password_change",
+      "api_views_systemsettingviewset",
+      "api_views_systemsettingviewset_list",
+      "apiview",
+      "backend_api_models_py",
+      "backend_api_serializers_py",
+      "backend_api_urls_py",
+      "backend_api_views_py",
+      "backend_gateway_management_commands_retry_sync_py",
+      "backend_gateway_validators_py",
+      "basecommand",
+      "commands_retry_sync_command",
+      "core_urls_rationale_1",
+      "gateway_models_syncbuffer",
+      "gateway_models_technician",
+      "gateway_models_waterpoint",
+      "gateway_serializers_syncbufferserializer",
+      "gateway_serializers_technicianserializer",
+      "gateway_serializers_waterpointserializer",
+      "gateway_views_assign_report",
+      "gateway_views_faultreportlistview",
+      "gateway_views_faultreportlistview_get_queryset",
+      "gateway_views_get_nearest_available_technician",
+      "gateway_views_get_nearest_technicians",
+      "gateway_views_haversine_km",
+      "gateway_views_nearby_technicians",
+      "gateway_views_rationale_46",
+      "gateway_views_rationale_63",
+      "gateway_views_smswebhookview",
+      "gateway_views_technicianviewset",
+      "gateway_views_waterpointviewset",
+      "src_technicians_mappicker"
+    ],
+    "3": [
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_addcombineoperator",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_and",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_between",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_conversationfilter",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_conversationfilterstatement",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_createfilter",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_equals",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_filter",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_filterstatement",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_greaterthan",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_greaterthanorequalto",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_invalues",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_lessthan",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_lessthanorequalto",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_like",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_notequalto",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_or",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_orderby",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_smsfilter",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_smsfilterstatement",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_filter_dart_where",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_argumenterror",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_fluttersmssetupbackgroundchannel",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_handlerfunction",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_listenincomingsms",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_onnewmessage",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_smsconversation",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_smsmessage",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_smssendstatuslistener",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_statuslistener",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_telephony",
+      "dart_async",
+      "dart_ui",
+      "mobile_sms_gateway_packages_telephony_lib_filter_dart",
+      "mobile_sms_gateway_packages_telephony_lib_telephony_dart",
+      "package_flutter_services_dart",
+      "package_flutter_widgets_dart",
+      "package_platform_platform_dart"
+    ],
+    "4": [
+      "sms_smscontroller_smscontroller",
+      "sms_smscontroller_smscontroller_dialphonenumber",
+      "sms_smscontroller_smscontroller_getcallstate",
+      "sms_smscontroller_smscontroller_getcellulardatastate",
+      "sms_smscontroller_smscontroller_getdataactivity",
+      "sms_smscontroller_smscontroller_getdatanetworktype",
+      "sms_smscontroller_smscontroller_getmessages",
+      "sms_smscontroller_smscontroller_getmultiplependingintents",
+      "sms_smscontroller_smscontroller_getnetworkoperator",
+      "sms_smscontroller_smscontroller_getpendingintents",
+      "sms_smscontroller_smscontroller_getphonetype",
+      "sms_smscontroller_smscontroller_getservicestate",
+      "sms_smscontroller_smscontroller_getsignalstrength",
+      "sms_smscontroller_smscontroller_getsimoperator",
+      "sms_smscontroller_smscontroller_getsimstate",
+      "sms_smscontroller_smscontroller_getsmsmanager",
+      "sms_smscontroller_smscontroller_gettelephonymanager",
+      "sms_smscontroller_smscontroller_isnetworkroaming",
+      "sms_smscontroller_smscontroller_issmscapable",
+      "sms_smscontroller_smscontroller_opendialer",
+      "sms_smscontroller_smscontroller_sendmultipartsms",
+      "sms_smscontroller_smscontroller_sendsms",
+      "sms_smscontroller_smscontroller_sendsmsintent",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_handlegetactions"
+    ],
+    "5": [
+      "api_views_rationale_22",
+      "api_views_rationale_47",
+      "api_views_send_sms",
+      "api_views_sms_webhook",
+      "backend_gateway_sms_service_py",
+      "classes_swifttelephonyplugin_swifttelephonyplugin",
+      "classes_swifttelephonyplugin_swifttelephonyplugin_register",
+      "commands_retry_sync_command_handle",
+      "flutterplugin",
+      "gateway_sms_service_rationale_20",
+      "gateway_sms_service_rationale_33",
+      "gateway_sms_service_rationale_53",
+      "gateway_sms_service_send_confirmation_sms",
+      "gateway_sms_service_send_error_sms",
+      "gateway_sms_service_send_outbound_sms",
+      "gateway_validators_rationale_4",
+      "gateway_validators_validate_sms_report",
+      "gateway_views_gateway_secret_ok",
+      "gateway_views_incoming_sms_fields",
+      "gateway_views_is_device_gateway_request",
+      "gateway_views_rationale_24",
+      "gateway_views_smswebhookview_post",
+      "nsobject"
+    ],
+    "6": [
+      "frontend_src_globehero_jsx",
+      "frontend_src_map3dviewer_jsx",
+      "src_globehero_fault_colors",
+      "src_globehero_globe_center",
+      "src_globehero_globehero",
+      "src_globehero_hudbtn",
+      "src_globehero_tile_style",
+      "src_globehero_zim_center",
+      "src_map3dviewer_map3dviewer",
+      "src_projectmap_iconalert",
+      "src_projectmap_iconarrowright",
+      "src_projectmap_iconchevrondown",
+      "src_projectmap_iconclock",
+      "src_projectmap_icondroplet",
+      "src_projectmap_iconglobesmall",
+      "src_projectmap_iconpin",
+      "src_projectmap_iconrefresh",
+      "src_projectmap_iconsliders",
+      "src_projectmap_icontarget",
+      "src_projectmap_iconusers",
+      "src_projectmap_projectmap"
+    ],
+    "7": [
+      "sms_incomingsmshandler_incomingsmshandler_onmethodcall",
+      "sms_smsmethodcallhandler_smsmethodcallhandler",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_checkorrequestpermission",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_execute",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_handlebackgroundactions",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_handlecallactions",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_handlegetsmsactions",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_handlemethod",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_handlesendsmsactions",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_onpermissiondenied",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_onrequestpermissionsresult",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_setactivity",
+      "sms_smsmethodcallhandler_smsmethodcallhandler_setforegroundchannel",
+      "telephony_permissionscontroller_permissionscontroller",
+      "telephony_permissionscontroller_permissionscontroller_checkpermission",
+      "telephony_permissionscontroller_permissionscontroller_getlistedpermissions",
+      "telephony_permissionscontroller_permissionscontroller_getphonepermissions",
+      "telephony_permissionscontroller_permissionscontroller_getservicestatepermissions",
+      "telephony_permissionscontroller_permissionscontroller_getsmspermissions",
+      "telephony_permissionscontroller_permissionscontroller_hasrequiredpermissions",
+      "telephony_permissionscontroller_permissionscontroller_requestpermissions"
+    ],
+    "8": [
+      "mobile_sms_gateway_windows_runner_flutter_window_cpp",
+      "mobile_sms_gateway_windows_runner_win32_window_cpp",
+      "runner_flutter_window_flutterwindow",
+      "runner_win32_window_create",
+      "runner_win32_window_destroy",
+      "runner_win32_window_enablefulldpisupportifavailable",
+      "runner_win32_window_getclientarea",
+      "runner_win32_window_gethandle",
+      "runner_win32_window_getthisfromhandle",
+      "runner_win32_window_getwindowclass",
+      "runner_win32_window_messagehandler",
+      "runner_win32_window_oncreate",
+      "runner_win32_window_scale",
+      "runner_win32_window_setchildcontent",
+      "runner_win32_window_setquitonclose",
+      "runner_win32_window_show",
+      "runner_win32_window_unregisterwindowclass",
+      "runner_win32_window_updatetheme",
+      "runner_win32_window_win32window",
+      "runner_win32_window_windowclassregistrar",
+      "runner_win32_window_wndproc"
+    ],
+    "9": [
+      "classes_telephonyplugin_telephonyplugin_registerwithregistrar",
+      "flutter_generated_plugin_registrant_fl_register_plugins",
+      "flutter_generated_plugin_registrant_registerplugins",
+      "flutter_generatedpluginregistrant_registergeneratedplugins",
+      "mobile_sms_gateway_ios_runner_generatedpluginregistrant_h",
+      "nswindow",
+      "plugins_generatedpluginregistrant_generatedpluginregistrant_registerwith",
+      "runner_mainflutterwindow_mainflutterwindow",
+      "runner_mainflutterwindow_mainflutterwindow_awakefromnib",
+      "runner_my_application_first_frame_cb",
+      "runner_my_application_my_application_activate",
+      "runner_my_application_my_application_class_init",
+      "runner_my_application_my_application_dispose",
+      "runner_my_application_my_application_init",
+      "runner_my_application_my_application_local_command_line",
+      "runner_my_application_my_application_new",
+      "runner_my_application_my_application_shutdown",
+      "runner_my_application_my_application_startup"
+    ],
+    "10": [
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_telephony_dart_methodchannel",
+      "sms_incomingsmshandler_incomingsmshandler",
+      "sms_incomingsmshandler_incomingsmshandler_executedartcallbackinbackgroundisolate",
+      "sms_incomingsmshandler_incomingsmshandler_getbackgroundmessagehandle",
+      "sms_incomingsmshandler_incomingsmshandler_initialize",
+      "sms_incomingsmshandler_incomingsmshandler_isapplicationforeground",
+      "sms_incomingsmshandler_incomingsmshandler_onchannelinitialized",
+      "sms_incomingsmshandler_incomingsmshandler_setbackgroundmessagehandle",
+      "sms_incomingsmshandler_incomingsmshandler_setbackgroundsetuphandle",
+      "sms_incomingsmshandler_incomingsmshandler_startbackgroundisolate",
+      "sms_incomingsmshandler_incomingsmsreceiver",
+      "sms_incomingsmshandler_incomingsmsreceiver_onreceive",
+      "sms_incomingsmshandler_incomingsmsreceiver_processinbackground",
+      "sms_incomingsmshandler_incomingsmsreceiver_processincomingsms",
+      "sms_incomingsmshandler_tomap"
+    ],
+    "11": [
+      "linux_flutter",
+      "linux_runner",
+      "telephony_android",
+      "telephony_ios",
+      "telephony_telephony",
+      "telephony_telephonyplugin_telephonyplugin_onattachedtoactivity",
+      "telephony_telephonyplugin_telephonyplugin_onattachedtoengine",
+      "telephony_telephonyplugin_telephonyplugin_ondetachedfromactivity",
+      "telephony_telephonyplugin_telephonyplugin_ondetachedfromactivityforconfigchanges",
+      "telephony_telephonyplugin_telephonyplugin_ondetachedfromengine",
+      "telephony_telephonyplugin_telephonyplugin_onreattachedtoactivityforconfigchanges",
+      "telephony_telephonyplugin_telephonyplugin_setupplugin",
+      "telephony_telephonyplugin_telephonyplugin_teardownplugin",
+      "web_index"
+    ],
+    "12": [
+      "flutter_assemble",
+      "flutter_cmakelists_txt",
+      "flutter_library",
+      "flutter_wrapper_app",
+      "flutter_wrapper_plugin",
+      "icon_maskable_512_png",
+      "runner_cmakelists_txt",
+      "sms_gateway_project",
+      "windows_cmakelists_txt"
+    ],
+    "13": [
+      "flutterappdelegate",
+      "flutterimplicitenginedelegate",
+      "runner_appdelegate_appdelegate",
+      "runner_appdelegate_appdelegate_application",
+      "runner_appdelegate_appdelegate_applicationshouldterminateafterlastwindowclosed",
+      "runner_appdelegate_appdelegate_applicationsupportssecurerestorablestate",
+      "runner_appdelegate_appdelegate_didinitializeimplicitflutterengine"
+    ],
+    "14": [
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_constants_dart_conversationcolumn",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_constants_dart_conversationprojections",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_constants_dart_smscolumn",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_constants_dart_smsprojections",
+      "c_users_raphiniel_r_murwira_desktop_claude_water_mobile_sms_gateway_packages_telephony_lib_constants_dart_telephonycolumn",
+      "mobile_sms_gateway_packages_telephony_lib_constants_dart"
+    ],
+    "15": [
+      "mobile_sms_gateway_windows_runner_main_cpp",
+      "mobile_sms_gateway_windows_runner_utils_cpp",
+      "runner_main_wwinmain",
+      "runner_utils_createandattachconsole",
+      "runner_utils_getcommandlinearguments",
+      "runner_utils_utf8fromutf16"
+    ],
+    "16": [
+      "backend_api_migrations_0001_initial_py",
+      "backend_api_migrations_0002_systemsetting_py",
+      "backend_gateway_migrations_0002_waterpoint_latitude_waterpoint_longitude_py",
+      "backend_gateway_migrations_0003_technician_faultreport_assigned_to_py",
+      "migrations_0001_initial_migration"
+    ],
+    "17": [
+      "ephemeral_flutter_lldb_helper_handle_new_rx_page",
+      "ephemeral_flutter_lldb_helper_lldb_init_module",
+      "ephemeral_flutter_lldb_helper_rationale_8",
+      "mobile_sms_gateway_ios_flutter_ephemeral_flutter_lldb_helper_py"
+    ],
+    "18": [
+      "mobile_sms_gateway_ios_runnertests_runnertests_swift",
+      "runnertests_runnertests_runnertests",
+      "runnertests_runnertests_runnertests_testexample",
+      "xctestcase"
+    ],
+    "19": [
+      "mobile_sms_gateway_packages_telephony_android_src_main_kotlin_com_shounakmulay_telephony_utils_smsenums_kt",
+      "utils_smsenums_actiontype",
+      "utils_smsenums_contenturi",
+      "utils_smsenums_smsaction"
+    ],
+    "20": [
+      "backend_core_asgi_py",
+      "backend_core_wsgi_py",
+      "core_asgi_rationale_1"
+    ],
+    "21": [
+      "frontend_src_mapcomponent_jsx",
+      "src_mapcomponent_defaulticon",
+      "src_mapcomponent_locationmarker"
+    ],
+    "22": [
+      "flutterscenedelegate",
+      "mobile_sms_gateway_ios_runner_scenedelegate_swift",
+      "runner_scenedelegate_scenedelegate"
+    ],
+    "23": [
+      "frontend_src_tablerowmenuportal_jsx",
+      "src_tablerowmenuportal_togglerowmenuanchor"
+    ],
+    "24": [
+      "backend_api_admin_py"
+    ],
+    "25": [
+      "backend_api_tests_py"
+    ],
+    "26": [
+      "backend_api_init_py"
+    ],
+    "27": [
+      "frontend_eslint_config_js"
+    ],
+    "28": [
+      "frontend_vite_config_js"
+    ],
+    "29": [
+      "mobile_sms_gateway_android_build_gradle_kts"
+    ],
+    "30": [
+      "mobile_sms_gateway_android_settings_gradle_kts"
+    ],
+    "31": [
+      "sms_gateway_mainactivity_mainactivity"
+    ],
+    "32": [
+      "mobile_sms_gateway_ios_runner_runner_bridging_header_h"
+    ],
+    "33": [
+      "sms_contextholder_contextholder"
+    ],
+    "34": [
+      "utils_constants_constants"
+    ],
+    "35": [
+      "mobile_sms_gateway_windows_runner_resource_h"
+    ],
+    "36": [
+      "mobile_sms_gateway_windows_runner_utils_h"
+    ],
+    "37": [
+      "app_icon_ios"
+    ],
+    "38": [
+      "app_icon_macos"
+    ]
+  },
+  "cohesion": {
+    "0": 0.07,
+    "1": 0.05,
+    "2": 0.15,
+    "3": 0.05,
+    "4": 0.18,
+    "5": 0.1,
+    "6": 0.11,
+    "7": 0.16,
+    "8": 0.18,
+    "9": 0.11,
+    "10": 0.22,
+    "11": 0.2,
+    "12": 0.25,
+    "13": 0.29,
+    "14": 0.33,
+    "15": 0.47,
+    "16": 0.4,
+    "17": 0.5,
+    "18": 0.5,
+    "19": 0.5,
+    "20": 0.67,
+    "21": 0.67,
+    "22": 0.67,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0
+  },
+  "gods": [
+    {
+      "id": "sms_smscontroller_smscontroller",
+      "label": "SmsController",
+      "degree": 23
+    },
+    {
+      "id": "src_authcontext_useauth",
+      "label": "useAuth()",
+      "degree": 20
+    },
+    {
+      "id": "gateway_models_technician",
+      "label": "Technician",
+      "degree": 17
+    },
+    {
+      "id": "api_models_faultreport",
+      "label": "FaultReport",
+      "degree": 16
+    },
+    {
+      "id": "src_projectmap_projectmap",
+      "label": "ProjectMap()",
+      "degree": 16
+    },
+    {
+      "id": "sms_smsmethodcallhandler_smsmethodcallhandler",
+      "label": "SmsMethodCallHandler",
+      "degree": 15
+    },
+    {
+      "id": "api_apps_apiconfig",
+      "label": "ApiConfig",
+      "degree": 14
+    },
+    {
+      "id": "gateway_models_waterpoint",
+      "label": "WaterPoint",
+      "degree": 14
+    },
+    {
+      "id": "telephony_telephony",
+      "label": "Telephony Plugin",
+      "degree": 13
+    },
+    {
+      "id": "api_serializers_faultreportserializer",
+      "label": "FaultReportSerializer",
+      "degree": 12
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Run administrative tasks.",
+      "target": "main()",
+      "source_files": [
+        "backend/manage.py",
+        "mobile/sms_gateway/linux/runner/main.cc"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "rationale_for",
+      "why": "connects across different repos/directories; peripheral node `Run administrative tasks.` unexpectedly reaches hub `main()`"
+    },
+    {
+      "source": "sms_webhook()",
+      "target": "Create()",
+      "source_files": [
+        "backend/api/views.py",
+        "mobile/sms_gateway/windows/runner/win32_window.cpp"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "Django settings for core project.  Generated by 'django-admin startproject' us",
+      "target": "Settings()",
+      "source_files": [
+        "backend/core/settings.py",
+        "frontend/src/Settings.jsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "rationale_for",
+      "why": "connects across different repos/directories; peripheral node `Django settings for core project.  Generated by 'django-admin startproject' us` unexpectedly reaches hub `Settings()`"
+    },
+    {
+      "source": "Technician",
+      "target": "useAuth()",
+      "source_files": [
+        "backend/gateway/models.py",
+        "frontend/src/AuthContext.jsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "WaterPoint",
+      "target": "useAuth()",
+      "source_files": [
+        "backend/gateway/models.py",
+        "frontend/src/AuthContext.jsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities"
+    }
+  ],
+  "tokens": {
+    "input": 191224,
+    "output": 2835
+  }
+}

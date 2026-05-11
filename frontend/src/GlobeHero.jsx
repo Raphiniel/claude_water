@@ -77,13 +77,18 @@ const GlobeHero = ({
   flyToCode,
   loading,
   onModeChange,
+  initialMode = 'globe',
+  flatMap = false,
+  showBackButton = true,
+  /** Live Map page: bottom-right controls, uniform markers, slight globe interaction */
+  liveMapLayout = false,
 }) => {
   const mapContainerRef = useRef(null);
   const mapRef          = useRef(null);
   const markersRef      = useRef({});
   const newMarkerRef    = useRef(null);
   const rotationRef     = useRef(null);
-  const [mode, setMode] = useState('globe'); 
+  const [mode, setMode] = useState(initialMode);
   const [activeWP, setActiveWP] = useState(null);
   const [mapMode, setMapMode]   = useState('country');
   const navigate = useNavigate();
@@ -126,27 +131,37 @@ const GlobeHero = ({
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
+    const startInMap = flatMap || initialMode === 'map';
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: TILE_STYLE,
-      projection: { name: 'globe' },
-      center: GLOBE_CENTER,
-      zoom: GLOBE_ZOOM,
-      minZoom: -2,
+      projection: { name: startInMap ? 'mercator' : 'globe' },
+      center: startInMap ? ZIM_CENTER : GLOBE_CENTER,
+      zoom: startInMap ? ZIM_ZOOM : GLOBE_ZOOM,
+      minZoom: startInMap ? 4 : -2,
       pitch: 0, bearing: 0,
       antialias: true,
-      interactive: false,
+      interactive: startInMap || liveMapLayout,
     });
     mapRef.current = map;
     map.on('load', () => {
-      map.setProjection({ name: 'globe' });
-      map.setFog({
-        color:            'rgba(255, 255, 255, 0.8)',
-        'high-color':     'rgba(163, 230, 53, 0.1)',   
-        'horizon-blend':  0.2,               
-        'space-color':    'rgba(0, 0, 0, 0)',          
-        'star-intensity': 0.0,                         
-      });
+      if (!startInMap) {
+        map.setProjection({ name: 'globe' });
+        map.setFog({
+          color:            'rgba(255, 255, 255, 0.8)',
+          'high-color':     'rgba(163, 230, 53, 0.1)',
+          'horizon-blend':  0.2,
+          'space-color':    'rgba(0, 0, 0, 0)',
+          'star-intensity': 0.0,
+        });
+      }
+      const navPos = liveMapLayout ? 'bottom-right' : (startInMap ? 'top-left' : null);
+      if (navPos) {
+        map.addControl(
+          new maplibregl.NavigationControl({ showCompass: true, visualizePitch: false }),
+          navPos
+        );
+      }
     });
 
     const resizeObserver = new ResizeObserver(() => {
@@ -163,6 +178,7 @@ const GlobeHero = ({
   }, []);
 
   const handleGlobeClick = () => {
+    if (flatMap) return;
     if (mode !== 'globe') return;
     setMode('map');
   };
@@ -206,16 +222,20 @@ const GlobeHero = ({
     Object.values(markersRef.current).forEach(m => m.remove());
     markersRef.current = {};
 
-    waterPoints.forEach(wp => {
+      waterPoints.forEach(wp => {
       if (!wp.latitude || !wp.longitude) return;
       const fault = faultIndex[wp.code];
-      const color = fault ? (FAULT_COLORS[fault.status] || '#ef4444') : '#a3e635';
-      const hasFault = !!fault;
+      const color = liveMapLayout
+        ? '#b4ea4e'
+        : flatMap
+          ? '#b4ea4e'
+          : (fault ? (FAULT_COLORS[fault.status] || '#ef4444') : '#a3e635');
+      const hasFault = !!fault && !liveMapLayout;
 
       const el = document.createElement('div');
       el.style.cssText = 'position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;';
 
-      if (hasFault) {
+      if (hasFault && !flatMap) {
         const lbl = document.createElement('div');
         lbl.textContent = FAULT_LABELS[fault.fault_code] || fault.fault_code;
         lbl.style.cssText = `background:${color};color:white;font-size:10px;font-weight:700;
@@ -226,10 +246,11 @@ const GlobeHero = ({
       }
 
       const dot = document.createElement('div');
+      const dotSize = liveMapLayout ? '12px' : flatMap ? '14px' : (hasFault ? '20px' : '15px');
       dot.style.cssText = `
-        width:${hasFault ? '20px' : '15px'};height:${hasFault ? '20px' : '15px'};
+        width:${dotSize};height:${dotSize};
         border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.9);
-        box-shadow:0 2px 10px rgba(0,0,0,0.5)${hasFault ? `,0 0 0 5px ${color}44` : ''};
+        box-shadow:0 2px 10px rgba(0,0,0,0.5)${liveMapLayout || flatMap ? `,0 0 0 4px rgba(180,234,78,0.28)` : (hasFault ? `,0 0 0 5px ${color}44` : '')};
         transition:transform .2s;`;
       el.appendChild(dot);
 
@@ -243,7 +264,7 @@ const GlobeHero = ({
       });
       markersRef.current[wp.code] = marker;
     });
-  }, [waterPoints, reports]);
+  }, [waterPoints, reports, liveMapLayout, flatMap]);
 
   const zoomToPoint = (map, wp) => {
     stopRotation();
@@ -251,7 +272,10 @@ const GlobeHero = ({
     map.dragPan.enable();
     map.flyTo({
       center: [parseFloat(wp.longitude), parseFloat(wp.latitude)],
-      zoom: POINT_ZOOM, pitch: POINT_PITCH, bearing: POINT_BEARING, duration: 2000,
+      zoom: POINT_ZOOM,
+      pitch: flatMap ? 0 : POINT_PITCH,
+      bearing: flatMap ? 0 : POINT_BEARING,
+      duration: 1200,
     });
     setMapMode('point');
     setActiveWP(wp);
@@ -259,7 +283,7 @@ const GlobeHero = ({
 
   const goToZimbabwe = () => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || flatMap) return;
     stopRotation();
     map.flyTo({ center: ZIM_CENTER, zoom: ZIM_ZOOM, pitch: 0, bearing: 0, duration: 1800 });
     setMapMode('country');
@@ -310,6 +334,29 @@ const GlobeHero = ({
 
         /* Hide attribution for clean look */
         .maplibregl-ctrl-attrib { display: none !important; }
+        .maplibregl-ctrl-top-left {
+          top: 12px;
+          left: 12px;
+        }
+        .maplibregl-ctrl-bottom-right {
+          bottom: 76px;
+          right: 14px;
+        }
+        .maplibregl-ctrl-group {
+          background: rgba(8, 14, 24, 0.82) !important;
+          border: 1px solid rgba(255,255,255,0.15);
+          border-radius: 8px !important;
+          backdrop-filter: blur(6px);
+          overflow: hidden;
+        }
+        .maplibregl-ctrl-group button {
+          width: 28px !important;
+          height: 28px !important;
+          color: #d5deec !important;
+        }
+        .maplibregl-ctrl-group button + button {
+          border-top: 1px solid rgba(255,255,255,0.1);
+        }
 
         .globe-aura {
           position: absolute;
@@ -376,7 +423,7 @@ const GlobeHero = ({
         }
       `}</style>
 
-      <div style={{ 
+      <div style={{
         width: '100%', 
         height: '100%', 
         position: 'relative', 
@@ -410,7 +457,7 @@ const GlobeHero = ({
           {mode === 'globe' && <div className="globe-highlight" />}
         </div>
 
-        {mode === 'map' && (
+        {mode === 'map' && showBackButton && !flatMap && (
           <div style={{ position: 'absolute', top: 20, right: 20, zHeight: 100 }}>
              <button onClick={goToGlobe} style={hudBtn}>← Back to Globe</button>
           </div>

@@ -59,6 +59,28 @@ def get_nearest_available_technician(water_point):
     )
 
 
+def get_nearest_technicians(water_point, *, available_only=False, limit=5):
+    """Return nearest technicians (optionally only available), each with distance_km."""
+    if not water_point.latitude or not water_point.longitude:
+        return []
+
+    technicians = Technician.objects.filter(latitude__isnull=False, longitude__isnull=False)
+    if available_only:
+        technicians = technicians.filter(is_available=True)
+
+    ranked = [
+        (
+            tech,
+            haversine_km(
+                water_point.latitude, water_point.longitude, tech.latitude, tech.longitude
+            ),
+        )
+        for tech in technicians
+    ]
+    ranked.sort(key=lambda pair: pair[1])
+    return ranked[:limit]
+
+
 def _is_device_gateway_request(request):
     v = (request.headers.get("X-SMS-Gateway") or "").strip().lower()
     return v in ("1", "true", "yes")
@@ -94,38 +116,27 @@ class SMSWebhookView(APIView):
             if validation_result['is_valid']:
                 wp = WaterPoint.objects.get(code=validation_result['parsed']['wp_code'])
                 ticket = f"WP{uuid.uuid4().hex[:6].upper()}"
-                report = FaultReport.objects.create(
+                FaultReport.objects.create(
                     water_point=wp,
                     fault_code=validation_result['parsed']['fault_code'],
                     sender_number=sender_number,
                     ticket_number=ticket,
                     status='PENDING',
                 )
-                tech = get_nearest_available_technician(wp)
-                if tech:
-                    report.assigned_to = tech
-                    report.status = 'IN_PROGRESS'
-                    report.save(update_fields=['assigned_to', 'status'])
 
                 if gateway:
-                    if tech:
-                        outbound = (
-                            f"Fault recorded. Ticket {ticket} for {wp.code}. "
-                            f"Assigned technician: {tech.name}. Contact: {tech.phone}."
-                        )
-                    else:
-                        outbound = (
-                            f"Fault recorded. Ticket {ticket} for {wp.code}. "
-                            "A technician will be assigned shortly."
-                        )
+                    outbound = (
+                        f"Fault recorded. Ticket {ticket} for {wp.code}. "
+                        "Your report is flagged for admin assignment."
+                    )
                     logger.info("Gateway SMS ticket %s for %s", ticket, sender_number)
                     return Response(
                         {
                             "status": "ok",
                             "ticket_number": ticket,
                             "water_point_code": wp.code,
-                            "technician_name": tech.name if tech else None,
-                            "technician_phone": str(tech.phone) if tech else None,
+                            "technician_name": None,
+                            "technician_phone": None,
                             "outbound_sms": outbound,
                         }
                     )
@@ -204,6 +215,29 @@ def assign_report(request, pk):
     report.status = 'IN_PROGRESS'
     report.save()
     return Response(FaultReportSerializer(report).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def nearby_technicians(request, pk):
+    try:
+        report = FaultReport.objects.select_related('water_point').get(pk=pk)
+    except FaultReport.DoesNotExist:
+        return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not report.water_point.latitude or not report.water_point.longitude:
+        return Response(
+            {'error': 'Water point has no coordinates for proximity search'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    ranked = get_nearest_technicians(report.water_point, available_only=False, limit=8)
+    data = []
+    for technician, distance_km in ranked:
+        item = TechnicianSerializer(technician).data
+        item['distance_km'] = round(distance_km, 2)
+        data.append(item)
+    return Response(data)
 
 
 class WaterPointViewSet(viewsets.ModelViewSet):

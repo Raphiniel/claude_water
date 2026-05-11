@@ -1,6 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import SMSWebhookView, FaultReportListView, WaterPointViewSet, TechnicianViewSet, assign_report
+from .views import (
+    SMSWebhookView,
+    FaultReportListView,
+    WaterPointViewSet,
+    TechnicianViewSet,
+    assign_report,
+    nearby_technicians,
+)
 
 router = DefaultRouter()
 router.register(r'waterpoints', WaterPointViewSet)
@@ -11,4 +18,5 @@ urlpatterns = [
     path('sms/incoming/', SMSWebhookView.as_view(), name='sms_webhook'),
     path('reports/', FaultReportListView.as_view(), name='report_list'),
     path('reports/<int:pk>/assign/', assign_report, name='assign_report'),
+    path('reports/<int:pk>/nearby-technicians/', nearby_technicians, name='nearby_technicians'),
 ]
