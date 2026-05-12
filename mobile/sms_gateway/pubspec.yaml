@@ -35,7 +35,9 @@ dependencies:
   geolocator: ^14.0.2
   permission_handler: ^11.3.1
   shared_preferences: ^2.3.3
-  flutter_secure_storage: ^9.2.4
+  # 9.x pulls flutter_secure_storage_windows → objective_c native hooks, which fail when
+  # the Flutter install path contains spaces (e.g. C:\Users\First Last\flutter\...).
+  flutter_secure_storage: ">=8.1.0 <9.0.0"
   flutter_svg: ^2.0.17
   url_launcher: ^6.3.2
   telephony:
