@@ -47,22 +47,14 @@ const Login = () => {
       <div className="glass-panel login-panel">
         <div className="login-brand">
           <img
-            className="login-brand-mark"
-            src="/logo-mark.svg"
-            alt=""
-            width={56}
-            height={64}
-            decoding="async"
-          />
-          <img
             className="login-brand-wordmark"
             src="/logo-wordmark.svg"
             alt="WaterWise"
-            width={200}
-            height={40}
+            width={180}
+            height={34}
             decoding="async"
           />
-          <p className="login-brand-tagline">Admin portal</p>
+          <p className="login-brand-tagline">Sign in to continue</p>
         </div>
         
         {error && <div className="error-message">{error}</div>}

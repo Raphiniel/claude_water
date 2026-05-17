@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <!-- Keep CPU/radio awake long enough for background isolate to POST while screen is off / locked -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Telephony plugin starts a short dataSync foreground service while relaying SMS when locked -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <application
         android:label="WaterWise API"

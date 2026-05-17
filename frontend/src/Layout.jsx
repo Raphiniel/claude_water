@@ -161,27 +161,14 @@ const Layout = ({ children }) => {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="sidebar-brand-row">
-            <img
-              className="sidebar-brand-mark"
-              src="/logo-mark.svg"
-              alt=""
-              width={36}
-              height={42}
-              decoding="async"
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <img
-                className="sidebar-brand-wordmark"
-                src="/logo-wordmark.svg"
-                alt="WaterWise"
-                width={140}
-                height={26}
-                decoding="async"
-              />
-              <span className="brand-sub">ADMIN PORTAL</span>
-            </div>
-          </div>
+          <img
+            className="sidebar-brand-wordmark"
+            src="/logo-wordmark.svg"
+            alt="WaterWise"
+            width={132}
+            height={26}
+            decoding="async"
+          />
         </div>
 
         <div className="sidebar-scroll">
@@ -379,7 +366,17 @@ const Layout = ({ children }) => {
                 <div className="user-meta">
                   <span className="user-name">{user?.username || 'Signed in'}</span>
                   <span className="user-role">
-                    {user?.is_superuser ? 'Superuser' : user?.is_staff ? 'Staff' : 'User'}
+                    {user?.is_superuser
+                      ? 'Superuser'
+                      : user?.role === 'community_leader'
+                        ? 'Community leader'
+                        : user?.role === 'technician'
+                          ? 'Technician'
+                          : user?.role === 'admin'
+                            ? 'Admin'
+                            : user?.is_staff
+                              ? 'Staff'
+                              : 'User'}
                   </span>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -419,7 +416,13 @@ const Layout = ({ children }) => {
           </div>
         </header>
 
-        <div className={`dashboard-scroll ${window.location.pathname === '/' ? 'no-scroll' : ''}`}>
+        <div
+          className={`dashboard-scroll ${
+            window.location.pathname === '/' || window.location.pathname === '/map'
+              ? 'no-scroll'
+              : ''
+          }`}
+        >
           {children}
         </div>
       </main>

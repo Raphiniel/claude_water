@@ -6,6 +6,7 @@ class AppSession {
     required this.refreshToken,
     required this.username,
     required this.isStaff,
+    required this.canConfigureSmsGateway,
   });
 
   final String apiOrigin;
@@ -13,4 +14,6 @@ class AppSession {
   final String refreshToken;
   final String username;
   final bool isStaff;
+  /// True only for Admins / superusers — handset SMS relay tab in the APK.
+  final bool canConfigureSmsGateway;
 }

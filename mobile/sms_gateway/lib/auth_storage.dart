@@ -14,6 +14,7 @@ const _kRefresh = 'waterwise_refresh_token';
 const _kOrigin = 'waterwise_api_origin';
 const _kUsername = 'waterwise_username';
 const _kIsStaff = 'waterwise_is_staff';
+const _kCanSms = 'waterwise_can_sms';
 
 /// Backend origin only, e.g. `https://host` (no `/api` suffix).
 String normalizeApiOrigin(String raw) {
@@ -80,6 +81,7 @@ class AuthStorage {
     required String refresh,
     required String username,
     required bool isStaff,
+    required bool canConfigureSmsGateway,
   }) async {
     final origin = normalizeApiOrigin(apiOrigin);
     await _secure.write(key: _kAccess, value: access);
@@ -87,14 +89,13 @@ class AuthStorage {
     await _secure.write(key: _kOrigin, value: origin);
     await _secure.write(key: _kUsername, value: username);
     await _secure.write(key: _kIsStaff, value: isStaff ? '1' : '0');
+    await _secure.write(key: _kCanSms, value: canConfigureSmsGateway ? '1' : '0');
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefFieldApiOrigin, origin);
-    if (isStaff) {
-      final wh = prefs.getString('gateway_webhook_url')?.trim() ?? '';
-      if (wh.isEmpty) {
-        await prefs.setString('gateway_webhook_url', '$origin/api/sms/incoming/');
-      }
+    final wh = prefs.getString('gateway_webhook_url')?.trim() ?? '';
+    if (wh.isEmpty) {
+      await prefs.setString('gateway_webhook_url', '$origin/api/sms/incoming/');
     }
   }
 
@@ -127,12 +128,14 @@ class AuthStorage {
 
     final username = me['username'] as String? ?? await _secure.read(key: _kUsername) ?? '';
     final isStaff = me['is_staff'] == true;
+    final canSms = me['can_configure_sms_gateway'] == true;
     await saveSession(
       apiOrigin: origin,
       access: access,
       refresh: refresh ?? '',
       username: username,
       isStaff: isStaff,
+      canConfigureSmsGateway: canSms,
     );
     return AppSession(
       apiOrigin: normalizeApiOrigin(origin),
@@ -140,6 +143,7 @@ class AuthStorage {
       refreshToken: refresh ?? '',
       username: username,
       isStaff: isStaff,
+      canConfigureSmsGateway: canSms,
     );
   }
 }

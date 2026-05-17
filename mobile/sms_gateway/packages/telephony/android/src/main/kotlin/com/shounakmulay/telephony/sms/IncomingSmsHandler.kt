@@ -47,20 +47,24 @@ class IncomingSmsReceiver : BroadcastReceiver() {
 
     companion object {
         var foregroundSmsChannel: MethodChannel? = null
-        /** Time to let the background Flutter isolate start, run HTTP (~45s), and reply SMS. */
-        private const val BROADCAST_HOLD_MS = 75_000L
+        /**
+         * Time to let the background Flutter isolate cold-start, run HTTP (up to ~90s when slow),
+         * and send the reply SMS while the device is locked / dozing.
+         */
+        private const val BROADCAST_HOLD_MS = 180_000L
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
         val pendingResult = goAsync()
         val appCtx = context.applicationContext
+        SmsRelayForegroundService.extendHold(appCtx)
         val pm = appCtx.getSystemService(Context.POWER_SERVICE) as PowerManager
         val wakeLock = pm.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
             "WaterWise:SmsRelayWake"
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            wakeLock.acquire(BROADCAST_HOLD_MS + 15_000L)
+            wakeLock.acquire(BROADCAST_HOLD_MS + 20_000L)
         } else {
             @Suppress("DEPRECATION")
             wakeLock.acquire()
@@ -69,7 +73,7 @@ class IncomingSmsReceiver : BroadcastReceiver() {
         ContextHolder.applicationContext = appCtx
         val smsList = Telephony.Sms.Intents.getMessagesFromIntent(intent)
         val grouped = smsList.groupBy { it.originatingAddress }
-        val holdMs = if (grouped.isEmpty()) 2_000L else BROADCAST_HOLD_MS
+        val holdMs = if (grouped.isEmpty()) 15_000L else BROADCAST_HOLD_MS
 
         val subscriptionId = readSubscriptionIdFromIntent(intent)
         grouped.forEach { group ->

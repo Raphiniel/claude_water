@@ -1,111 +1,432 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-
 import { API_BASE as API } from './apiConfig';
+
+const FAULT_LABELS = {
+  PUMP: 'Pump Failure',
+  LEAK: 'Pipe Leak',
+  DRY: 'Borehole Dry',
+  CONTAM: 'Contamination',
+  VANDAL: 'Vandalism',
+  OTHER: 'Other',
+};
+
+const FAULT_COLORS = {
+  PUMP: '#ef4444',
+  LEAK: '#3b82f6',
+  DRY: '#f59e0b',
+  CONTAM: '#a855f7',
+  VANDAL: '#f97316',
+  OTHER: '#94a3b8',
+};
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function parseList(data) {
+  return Array.isArray(data) ? data : data?.results || [];
+}
+
+function startOfDay(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function formatRelativeTime(date) {
+  if (!date) return '';
+  const sec = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (sec < 10) return 'Just now';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ago`;
+}
+
+function last7DayKeys() {
+  const keys = [];
+  for (let i = 6; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    keys.push(startOfDay(d).toISOString().slice(0, 10));
+  }
+  return keys;
+}
+
+function formatShortDate(isoKey) {
+  const d = new Date(`${isoKey}T12:00:00`);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 
 const Analytics = () => {
   const [reports, setReports] = useState([]);
+  const [waterPoints, setWaterPoints] = useState([]);
+  const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
+
   const authHeader = useCallback(() => ({ Authorization: `Bearer ${user.token}` }), [user.token]);
 
+  const loadData = useCallback(async () => {
+    if (!user?.token) {
+      setLoading(false);
+      return;
+    }
+    setFetchError(null);
+    setLoading(true);
+    try {
+      const [rRes, wpRes, tRes] = await Promise.all([
+        axios.get(`${API}/api/reports/`, { headers: authHeader() }),
+        axios.get(`${API}/api/waterpoints/`, { headers: authHeader() }),
+        axios.get(`${API}/api/technicians/`, { headers: authHeader() }),
+      ]);
+      setReports(parseList(rRes.data));
+      setWaterPoints(parseList(wpRes.data));
+      setTechnicians(parseList(tRes.data).filter((t) => t.is_active !== false));
+      setLastUpdated(new Date());
+    } catch (err) {
+      setFetchError(err.response?.data?.detail || err.message || 'Failed to load analytics');
+    } finally {
+      setLoading(false);
+    }
+  }, [authHeader, user?.token]);
+
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const res = await axios.get(`${API}/api/reports/`, { headers: authHeader() });
-        setReports(res.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+    loadData();
+  }, [loadData]);
+
+  const stats = useMemo(() => {
+    const total = reports.length;
+    const pending = reports.filter((r) => r.status === 'PENDING').length;
+    const inProgress = reports.filter((r) => r.status === 'IN_PROGRESS').length;
+    const resolved = reports.filter((r) => r.status === 'RESOLVED').length;
+    const resolutionRate = total ? Math.round((resolved / total) * 100) : 0;
+    const open = pending + inProgress;
+
+    const faultCounts = reports.reduce((acc, r) => {
+      const code = r.fault_code || 'OTHER';
+      acc[code] = (acc[code] || 0) + 1;
+      return acc;
+    }, {});
+    const faultData = Object.entries(faultCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+    const maxFault = faultData.length ? Math.max(...faultData.map((d) => d[1])) : 1;
+
+    const dayKeys = last7DayKeys();
+    const createdByDay = Object.fromEntries(dayKeys.map((k) => [k, 0]));
+    const resolvedByDay = Object.fromEntries(dayKeys.map((k) => [k, 0]));
+
+    reports.forEach((r) => {
+      if (!r.created_at) return;
+      const createdKey = startOfDay(r.created_at).toISOString().slice(0, 10);
+      if (createdKey in createdByDay) createdByDay[createdKey] += 1;
+      if (r.status === 'RESOLVED' && createdKey in resolvedByDay) {
+        resolvedByDay[createdKey] += 1;
       }
+    });
+
+    const weeklyTrend = dayKeys.map((key) => ({
+      key,
+      label: DAY_LABELS[new Date(`${key}T12:00:00`).getDay()],
+      dateLabel: formatShortDate(key),
+      created: createdByDay[key],
+      resolved: resolvedByDay[key],
+    }));
+    const trendMax = Math.max(1, ...weeklyTrend.map((d) => Math.max(d.created, d.resolved)));
+
+    const availableTechs = technicians.filter((t) => t.is_available).length;
+    const withGps = waterPoints.filter((wp) => wp.latitude && wp.longitude).length;
+    const gpsPct = waterPoints.length ? Math.round((withGps / waterPoints.length) * 100) : 0;
+
+    return {
+      total,
+      pending,
+      inProgress,
+      resolved,
+      open,
+      resolutionRate,
+      faultData,
+      maxFault,
+      weeklyTrend,
+      trendMax,
+      availableTechs,
+      techCount: technicians.length,
+      wpCount: waterPoints.length,
+      withGps,
+      gpsPct,
     };
-    fetchAnalytics();
-  }, [authHeader]);
-
-  // Derived stats
-  const total = reports.length;
-  const resolved = reports.filter(r => r.status === 'RESOLVED').length;
-  const resolutionRate = total ? Math.round((resolved / total) * 100) : 0;
-  
-  // Fault types breakdown
-  const faultCounts = reports.reduce((acc, r) => {
-    acc[r.fault_code] = (acc[r.fault_code] || 0) + 1;
-    return acc;
-  }, {});
-
-  // Convert to sorted array
-  const faultData = Object.entries(faultCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const maxFaultCount = faultData.length > 0 ? Math.max(...faultData.map(d => d[1])) : 1;
+  }, [reports, waterPoints, technicians]);
 
   if (loading) {
-    return <div className="loading" style={{ marginTop: '2rem', color: 'var(--text-muted)' }}>Loading analytics data...</div>;
+    return <div className="loading">Loading analytics…</div>;
   }
 
+  const hasData = stats.total > 0;
+
   return (
-    <div>
+    <div className="settings-page">
       <div className="page-header">
         <div>
-          <h2 className="page-title">Analytics & Insights</h2>
-          <p className="page-subtitle">System performance and fault resolution metrics</p>
+          <h2 className="page-title">Analytics</h2>
+          <p className="page-subtitle">
+            Reports, faults, and field coverage from live data
+            {lastUpdated ? ` · Updated ${formatRelativeTime(lastUpdated)}` : ''}
+          </p>
         </div>
+        <button type="button" onClick={loadData} className="btn-secondary btn-sm">
+          Refresh
+        </button>
       </div>
 
-      <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <div className="panel" style={{ gridColumn: 'span 1' }}>
-          <div className="panel-header">
-            <h3 className="panel-title">Overall Resolution Rate</h3>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '220px' }}>
-            <div style={{ position: 'relative', width: '160px', height: '160px' }}>
-              <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#a3e635" strokeWidth="3" strokeDasharray={`${resolutionRate}, 100`} style={{ transition: 'stroke-dasharray 1s ease-out' }} />
-              </svg>
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#fff' }}>{resolutionRate}%</span>
-                <span style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resolved</span>
-              </div>
-            </div>
-          </div>
+      {fetchError && (
+        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+          {fetchError}
         </div>
+      )}
 
-        <div className="panel" style={{ gridColumn: 'span 2' }}>
-          <div className="panel-header">
-            <h3 className="panel-title">Fault Type Distribution</h3>
+      <div className="settings-sections">
+        <section className="glass-panel settings-section">
+          <h3 className="settings-section-title">Overview</h3>
+          <p className="settings-section-desc">Click a card to open the filtered list.</p>
+          <div className="reports-summary-cards analytics-kpi-cards">
+            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports')}>
+              <span className="reports-filter-card-head">
+                <span className="dashboard-kpi-dot purple" aria-hidden />
+                Total reports
+              </span>
+              <strong>{stats.total}</strong>
+              <small>Full queue</small>
+            </button>
+            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=PENDING')}>
+              <span className="reports-filter-card-head">
+                <span className="dashboard-kpi-dot amber" aria-hidden />
+                Pending
+              </span>
+              <strong>{stats.pending}</strong>
+              <small>Awaiting assignment</small>
+            </button>
+            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=IN_PROGRESS')}>
+              <span className="reports-filter-card-head">
+                <span className="dashboard-kpi-dot blue" aria-hidden />
+                In progress
+              </span>
+              <strong>{stats.inProgress}</strong>
+              <small>Technician assigned</small>
+            </button>
+            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=RESOLVED')}>
+              <span className="reports-filter-card-head">
+                <span className="dashboard-kpi-dot green" aria-hidden />
+                Resolved
+              </span>
+              <strong>{stats.resolved}</strong>
+              <small>Closed tickets</small>
+            </button>
+            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=RESOLVED')}>
+              <span className="reports-filter-card-head">
+                <span className="dashboard-kpi-dot green" aria-hidden />
+                Resolution rate
+              </span>
+              <strong>{stats.resolutionRate}%</strong>
+              <small>Share resolved</small>
+            </button>
+            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports')}>
+              <span className="reports-filter-card-head">
+                <span className="dashboard-kpi-dot red" aria-hidden />
+                Open
+              </span>
+              <strong>{stats.open}</strong>
+              <small>Pending + in progress</small>
+            </button>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1rem', padding: '0 0.5rem' }}>
-            {faultData.map(([code, count]) => (
-              <div key={code}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.5rem', color: '#ccc' }}>
-                  <span style={{ fontWeight: 600 }}>{code}</span>
-                  <span style={{ color: '#888' }}>{count} incident{count !== 1 ? 's' : ''}</span>
-                </div>
-                <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${(count / maxFaultCount) * 100}%`, background: 'linear-gradient(90deg, #3b82f6, #60a5fa)', borderRadius: '4px', transition: 'width 1s ease-out' }} />
-                </div>
+        </section>
+
+        {!hasData ? (
+          <section className="glass-panel settings-section">
+            <h3 className="settings-section-title">No data yet</h3>
+            <p className="settings-section-desc">
+              Fault reports from SMS and the portal will appear here once submitted.
+            </p>
+            <Link to="/reports" className="btn-primary" style={{ textDecoration: 'none', width: 'fit-content' }}>
+              View reports
+            </Link>
+          </section>
+        ) : (
+          <>
+            <section className="glass-panel settings-section">
+              <h3 className="settings-section-title">Activity — last 7 days</h3>
+              <p className="settings-section-desc">New reports vs resolved (by report date).</p>
+              <div className="analytics-legend analytics-legend--inline" style={{ marginBottom: '0.75rem' }}>
+                <span>
+                  <i className="analytics-legend-dot analytics-legend-dot--created" />
+                  New
+                </span>
+                <span>
+                  <i className="analytics-legend-dot analytics-legend-dot--resolved" />
+                  Resolved
+                </span>
               </div>
-            ))}
-            {faultData.length === 0 && <div className="muted" style={{ padding: '2rem', textAlign: 'center' }}>No fault data available.</div>}
-          </div>
-        </div>
-        
-        <div className="panel" style={{ gridColumn: '1 / -1' }}>
-          <div className="panel-header">
-            <h3 className="panel-title">Weekly Resolution Trend</h3>
-          </div>
-          <div style={{ height: '220px', display: 'flex', alignItems: 'flex-end', gap: '2rem', padding: '1rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.05)', marginTop: '1rem' }}>
-            {[4, 12, 8, 15, 20, 14, 25].map((val, i) => (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '100%', maxWidth: '40px', height: `${(val / 25) * 150}px`, background: 'linear-gradient(180deg, rgba(163,230,53,0.4) 0%, rgba(163,230,53,0.05) 100%)', border: '1px solid rgba(163,230,53,0.5)', borderBottom: 'none', borderRadius: '4px 4px 0 0', position: 'relative', transition: 'height 1s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
-                  <div style={{ position: 'absolute', top: '-25px', width: '100%', textAlign: 'center', fontSize: '0.75rem', color: '#a3e635', fontWeight: 700 }}>{val}</div>
-                </div>
-                <span style={{ fontSize: '0.7rem', color: '#888', textTransform: 'uppercase' }}>Day {i+1}</span>
+              <div className="analytics-week-chart">
+                {stats.weeklyTrend.map((day) => {
+                  const createdH = Math.max(day.created ? 12 : 4, (day.created / stats.trendMax) * 100);
+                  const resolvedH = Math.max(day.resolved ? 12 : 4, (day.resolved / stats.trendMax) * 100);
+                  return (
+                    <div
+                      key={day.key}
+                      className="analytics-week-col"
+                      title={`${day.dateLabel}: ${day.created} new, ${day.resolved} resolved`}
+                    >
+                      <div className="analytics-week-bars">
+                        <div
+                          className="analytics-week-bar analytics-week-bar--created"
+                          style={{ height: `${createdH}%` }}
+                        />
+                        <div
+                          className="analytics-week-bar analytics-week-bar--resolved"
+                          style={{ height: `${resolvedH}%` }}
+                        />
+                      </div>
+                      <span className="analytics-week-label">{day.label}</span>
+                      <span className="analytics-week-date">{day.dateLabel}</span>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        </div>
+            </section>
+
+            <section className="glass-panel settings-section">
+              <h3 className="settings-section-title">Resolution</h3>
+              <p className="settings-section-desc">Share of reports marked resolved.</p>
+              <div className="reports-summary-cards analytics-kpi-cards analytics-kpi-cards--compact">
+                <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=RESOLVED')}>
+                  <span className="reports-filter-card-head">
+                    <span className="dashboard-kpi-dot green" aria-hidden />
+                    Resolution rate
+                  </span>
+                  <strong>{stats.resolutionRate}%</strong>
+                  <small>Resolved share</small>
+                </button>
+                <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=PENDING')}>
+                  <span className="reports-filter-card-head">
+                    <span className="dashboard-kpi-dot amber" aria-hidden />
+                    Pending
+                  </span>
+                  <strong>{stats.pending}</strong>
+                  <small>Awaiting work</small>
+                </button>
+                <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=IN_PROGRESS')}>
+                  <span className="reports-filter-card-head">
+                    <span className="dashboard-kpi-dot blue" aria-hidden />
+                    In progress
+                  </span>
+                  <strong>{stats.inProgress}</strong>
+                  <small>Assigned</small>
+                </button>
+                <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=RESOLVED')}>
+                  <span className="reports-filter-card-head">
+                    <span className="dashboard-kpi-dot green" aria-hidden />
+                    Resolved
+                  </span>
+                  <strong>{stats.resolved}</strong>
+                  <small>Closed</small>
+                </button>
+              </div>
+              <div className="analytics-status-stack" aria-hidden>
+                <div
+                  className="analytics-status-seg analytics-status-seg--pending"
+                  style={{ flex: stats.pending || 0.001 }}
+                />
+                <div
+                  className="analytics-status-seg analytics-status-seg--progress"
+                  style={{ flex: stats.inProgress || 0.001 }}
+                />
+                <div
+                  className="analytics-status-seg analytics-status-seg--resolved"
+                  style={{ flex: stats.resolved || 0.001 }}
+                />
+              </div>
+            </section>
+
+            <section className="glass-panel settings-section">
+              <h3 className="settings-section-title">Fault breakdown</h3>
+              <p className="settings-section-desc">Most common issue types across all reports.</p>
+              {stats.faultData.length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>No fault categories recorded yet.</p>
+              ) : (
+                <ul className="settings-info-list analytics-fault-list">
+                  {stats.faultData.map(([code, count]) => {
+                    const pct = stats.total ? Math.round((count / stats.total) * 100) : 0;
+                    return (
+                      <li key={code}>
+                        <span className={`fault-badge fault-${code.toLowerCase()}`}>
+                          {FAULT_LABELS[code] || code}
+                        </span>
+                        <div className="analytics-fault-row-meta">
+                          <span>
+                            {count} <span className="muted">({pct}%)</span>
+                          </span>
+                          <div className="analytics-bar-track">
+                            <div
+                              className="analytics-bar-fill"
+                              style={{
+                                width: `${(count / stats.maxFault) * 100}%`,
+                                background: FAULT_COLORS[code] || FAULT_COLORS.OTHER,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            <section className="glass-panel settings-section">
+              <h3 className="settings-section-title">Field coverage</h3>
+              <p className="settings-section-desc">Water points and technicians in the system.</p>
+              <div className="reports-summary-cards analytics-kpi-cards analytics-kpi-cards--compact">
+                <button type="button" className="reports-filter-card" onClick={() => navigate('/waterpoints')}>
+                  <span className="reports-filter-card-head">
+                    <span className="dashboard-kpi-dot blue" aria-hidden />
+                    Water points
+                  </span>
+                  <strong>{stats.wpCount}</strong>
+                  <small>Registered</small>
+                </button>
+                <button type="button" className="reports-filter-card" onClick={() => navigate('/waterpoints?status=NO_GPS')}>
+                  <span className="reports-filter-card-head">
+                    <span className="dashboard-kpi-dot purple" aria-hidden />
+                    GPS mapped
+                  </span>
+                  <strong>{stats.gpsPct}%</strong>
+                  <small>{stats.withGps} with coordinates</small>
+                </button>
+                <button type="button" className="reports-filter-card" onClick={() => navigate('/technicians')}>
+                  <span className="reports-filter-card-head">
+                    <span className="dashboard-kpi-dot purple" aria-hidden />
+                    Technicians
+                  </span>
+                  <strong>{stats.techCount}</strong>
+                  <small>Active roster</small>
+                </button>
+                <button type="button" className="reports-filter-card" onClick={() => navigate('/technicians?status=AVAILABLE')}>
+                  <span className="reports-filter-card-head">
+                    <span className="dashboard-kpi-dot green" aria-hidden />
+                    Available
+                  </span>
+                  <strong>{stats.availableTechs}</strong>
+                  <small>Ready now</small>
+                </button>
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </div>
   );

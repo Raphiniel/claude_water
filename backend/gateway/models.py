@@ -9,6 +9,7 @@ class Technician(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     is_available = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True, help_text='False when deactivated (soft delete).')
     field_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

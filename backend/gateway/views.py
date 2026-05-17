@@ -17,8 +17,13 @@ from .sms_dialog import handle_gateway_sms_dialog
 from .validators import validate_sms_report
 from .sms_service import send_confirmation_sms, send_error_sms
 from .serializers import FaultReportSerializer, WaterPointSerializer, TechnicianSerializer
+from api.settings_helpers import auto_assign_nearest_enabled, send_confirmation_sms_enabled
 
 logger = logging.getLogger(__name__)
+
+
+def _system_auto_assign_enabled():
+    return auto_assign_nearest_enabled()
 
 
 def _incoming_sms_fields(request):
@@ -64,8 +69,11 @@ def get_nearest_available_technician(water_point):
     if not water_point.latitude or not water_point.longitude:
         return None
     technicians = Technician.objects.filter(
-        is_available=True, latitude__isnull=False, longitude__isnull=False
-    ).only("id", "name", "phone", "latitude", "longitude", "is_available")
+        is_active=True,
+        is_available=True,
+        latitude__isnull=False,
+        longitude__isnull=False,
+    ).only("id", "name", "phone", "latitude", "longitude", "is_available", "is_active")
     if not technicians.exists():
         return None
     return min(
@@ -81,7 +89,7 @@ def get_nearest_technicians(water_point, *, available_only=False, limit=5):
     if not water_point.latitude or not water_point.longitude:
         return []
 
-    technicians = Technician.objects.filter(latitude__isnull=False, longitude__isnull=False)
+    technicians = Technician.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
     if available_only:
         technicians = technicians.filter(is_available=True)
 
@@ -181,7 +189,8 @@ class SMSWebhookView(APIView):
                     ticket_number=ticket,
                     status='PENDING',
                 )
-                try_auto_assign_nearest(report)
+                if _system_auto_assign_enabled():
+                    try_auto_assign_nearest(report)
 
                 if gateway:
                     if report.assigned_to:
@@ -211,12 +220,13 @@ class SMSWebhookView(APIView):
                         }
                     )
 
-                send_confirmation_sms(
-                    sender_number,
-                    ticket,
-                    wp.code,
-                    technician_name=report.assigned_to.name if report.assigned_to else None,
-                )
+                if send_confirmation_sms_enabled():
+                    send_confirmation_sms(
+                        sender_number,
+                        ticket,
+                        wp.code,
+                        technician_name=report.assigned_to.name if report.assigned_to else None,
+                    )
                 logger.info("Report saved, ticket %s for %s", ticket, sender_number)
             elif gateway:
                 return Response(handle_gateway_sms_dialog(sender_number, message_text))
@@ -278,7 +288,7 @@ def field_update_position(request):
         return Response({'error': 'latitude and longitude are required'}, status=status.HTTP_400_BAD_REQUEST)
     try:
         uid = uuid_mod.UUID(token)
-        tech = Technician.objects.get(field_token=uid)
+        tech = Technician.objects.get(field_token=uid, is_active=True)
     except (Technician.DoesNotExist, ValueError, TypeError, AttributeError):
         return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
     try:
@@ -299,7 +309,7 @@ def field_my_jobs(request):
         return Response({'error': 'token is required'}, status=status.HTTP_400_BAD_REQUEST)
     try:
         uid = uuid_mod.UUID(token)
-        tech = Technician.objects.get(field_token=uid)
+        tech = Technician.objects.get(field_token=uid, is_active=True)
     except (Technician.DoesNotExist, ValueError, TypeError, AttributeError):
         return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -356,6 +366,27 @@ def assign_report(request, pk):
 
     report.status = 'IN_PROGRESS'
     report.save()
+    return Response(FaultReportSerializer(report).data)
+
+
+@api_view(['POST', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_report_status(request, pk):
+    try:
+        report = FaultReport.objects.select_related('water_point', 'assigned_to').get(pk=pk)
+    except FaultReport.DoesNotExist:
+        return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    new_status = str(request.data.get('status', '')).strip().upper()
+    allowed = {'PENDING', 'IN_PROGRESS', 'RESOLVED'}
+    if new_status not in allowed:
+        return Response(
+            {'error': 'Invalid status. Use PENDING, IN_PROGRESS, or RESOLVED.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    report.status = new_status
+    report.save(update_fields=['status'])
     return Response(FaultReportSerializer(report).data)
 
 

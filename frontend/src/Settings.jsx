@@ -1,170 +1,299 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { API_BASE } from './apiConfig';
 
+const MODES = [
+  {
+    key: 'NORMAL',
+    label: 'Normal',
+    hint: 'Standard operations and reporting.',
+  },
+  {
+    key: 'EMERGENCY',
+    label: 'Emergency',
+    hint: 'Prioritize urgent faults and alerts.',
+  },
+  {
+    key: 'MAINTENANCE',
+    label: 'Maintenance',
+    hint: 'Planned work; reduce auto-assignments.',
+  },
+];
+
+const DEFAULT_SETTINGS = {
+  mode: 'NORMAL',
+  organization_name: 'WaterWise',
+  auto_assign_nearest: true,
+  send_confirmation_sms: true,
+  sms_gateway_configured: false,
+  sms_provider_configured: false,
+};
+
 const Settings = () => {
-    const [mode, setMode] = useState('NORMAL');
-    const [oldPassword, setOldPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [message, setMessage] = useState({ type: '', text: '' });
-    const [loading, setLoading] = useState(false);
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
 
-    useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                const response = await axios.get(`${API_BASE}/api/settings/`, {
-                    headers: { Authorization: `Bearer ${user.token}` }
-                });
-                setMode(response.data.mode);
-            } catch (err) {
-                console.error("Failed to fetch settings", err);
-            }
-        };
-        fetchSettings();
-    }, [user]);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
-    const handleModeChange = async (newMode) => {
-        try {
-            await axios.post(`${API_BASE}/api/settings/`, { mode: newMode }, {
-                headers: { Authorization: `Bearer ${user.token}` }
-            });
-            setMode(newMode);
-            setMessage({ type: 'success', text: 'System mode updated successfully!' });
-        } catch (err) {
-            setMessage({ type: 'error', text: 'Failed to update system mode.' });
-        }
-    };
+  const { user, logout } = useAuth();
 
-    const handlePasswordChange = async (e) => {
-        e.preventDefault();
-        if (newPassword !== confirmPassword) {
-            setMessage({ type: 'error', text: 'Passwords do not match.' });
-            return;
-        }
+  const authHeader = useCallback(
+    () => ({ Authorization: `Bearer ${user.token}` }),
+    [user.token]
+  );
 
-        setLoading(true);
-        try {
-            await axios.post(`${API_BASE}/api/password-change/`, {
-                old_password: oldPassword,
-                new_password: newPassword
-            }, {
-                headers: { Authorization: `Bearer ${user.token}` }
-            });
-            setMessage({ type: 'success', text: 'Password changed successfully! Logging out...' });
-            setTimeout(() => logout(), 2000);
-        } catch (err) {
-            const errorMsg = err.response?.data?.old_password?.[0] || 'Failed to change password.';
-            setMessage({ type: 'error', text: errorMsg });
-        } finally {
-            setLoading(false);
-        }
-    };
+  const loadSettings = useCallback(async () => {
+    if (!user?.token) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE}/api/settings/`, { headers: authHeader() });
+      setSettings({ ...DEFAULT_SETTINGS, ...res.data });
+    } catch (err) {
+      console.error('Failed to fetch settings', err);
+      setMessage({ type: 'error', text: 'Could not load settings.' });
+    } finally {
+      setLoading(false);
+    }
+  }, [authHeader, user?.token]);
 
-    return (
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  const saveSettings = async (patch) => {
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+    try {
+      const res = await axios.post(`${API_BASE}/api/settings/`, patch, { headers: authHeader() });
+      setSettings({ ...DEFAULT_SETTINGS, ...res.data });
+      setMessage({ type: 'success', text: 'Settings saved.' });
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to save settings.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleModeChange = (mode) => {
+    setSettings((s) => ({ ...s, mode }));
+    saveSettings({ mode });
+  };
+
+  const handleGeneralSave = (e) => {
+    e.preventDefault();
+    saveSettings({
+      organization_name: settings.organization_name?.trim() || 'WaterWise',
+      auto_assign_nearest: settings.auto_assign_nearest,
+      send_confirmation_sms: settings.send_confirmation_sms,
+    });
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setMessage({ type: 'error', text: 'New passwords do not match.' });
+      return;
+    }
+    setPasswordLoading(true);
+    setMessage({ type: '', text: '' });
+    try {
+      await axios.post(
+        `${API_BASE}/api/password-change/`,
+        { old_password: oldPassword, new_password: newPassword },
+        { headers: authHeader() }
+      );
+      setMessage({ type: 'success', text: 'Password updated. Signing out…' });
+      setTimeout(() => logout(), 1500);
+    } catch (err) {
+      const errorMsg = err.response?.data?.old_password?.[0] || 'Failed to change password.';
+      setMessage({ type: 'error', text: errorMsg });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="loading">Loading settings…</div>;
+  }
+
+  return (
+    <div className="settings-page">
+      <div className="page-header">
         <div>
-            <div style={{ marginBottom: '2rem' }}>
-                <h2>System Settings</h2>
-                <p style={{ color: 'var(--text-muted)' }}>Configure system modes and security</p>
-            </div>
-
-            <div className="settings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-                <section className="glass-panel">
-                    <h3>System Mode</h3>
-                    <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-                        Set the operational state of the Waterwise network.
-                    </p>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {['NORMAL', 'EMERGENCY', 'MAINTENANCE'].map((m) => (
-                            <button
-                                key={m}
-                                onClick={() => handleModeChange(m)}
-                                className={`btn-secondary ${mode === m ? 'active-mode' : ''}`}
-                                style={{ 
-                                    textAlign: 'left', 
-                                    padding: '1rem',
-                                    border: mode === m ? '1px solid var(--primary)' : '1px solid var(--card-border)',
-                                    background: mode === m ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-color)',
-                                    marginBottom: '0.5rem',
-                                    borderRadius: '8px',
-                                    width: '100%',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <span style={{ fontWeight: 600 }}>{m.charAt(0) + m.slice(1).toLowerCase()} Mode</span>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                    {m === 'NORMAL' && "Standard operation and reporting."}
-                                    {m === 'EMERGENCY' && "High priority alerts and immediate response."}
-                                    {m === 'MAINTENANCE' && "System in scheduled repair state."}
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                </section>
-
-                <section className="glass-panel">
-                    <h3>Change Password</h3>
-                    <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-                        Update your administrator credentials.
-                    </p>
-
-                    <form onSubmit={handlePasswordChange} className="login-form">
-                        <div className="form-group">
-                            <label>Current Password</label>
-                            <input 
-                                type="password" 
-                                value={oldPassword} 
-                                onChange={(e) => setOldPassword(e.target.value)} 
-                                required 
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>New Password</label>
-                            <input 
-                                type="password" 
-                                value={newPassword} 
-                                onChange={(e) => setNewPassword(e.target.value)} 
-                                required 
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Confirm New Password</label>
-                            <input 
-                                type="password" 
-                                value={confirmPassword} 
-                                onChange={(e) => setConfirmPassword(e.target.value)} 
-                                required 
-                            />
-                        </div>
-                        
-                        {message.text && (
-                            <div style={{ 
-                                padding: '0.75rem', 
-                                borderRadius: '8px', 
-                                marginTop: '1rem',
-                                background: message.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                color: message.type === 'success' ? 'var(--success)' : '#fca5a5',
-                                border: `1px solid ${message.type === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
-                                fontSize: '0.9rem',
-                                textAlign: 'center'
-                            }}>
-                                {message.text}
-                            </div>
-                        )}
-
-                        <button type="submit" disabled={loading} className="btn-primary">
-                            {loading ? 'Updating...' : 'Save Password'}
-                        </button>
-                    </form>
-                </section>
-            </div>
+          <h2 className="page-title">Settings</h2>
+          <p className="page-subtitle">System behaviour, SMS, and your account</p>
         </div>
-    );
+      </div>
+
+      {message.text && (
+        <div
+          className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}
+          style={{ marginBottom: '1rem' }}
+        >
+          {message.text}
+        </div>
+      )}
+
+      <div className="settings-sections">
+        <section className="glass-panel settings-section">
+          <h3 className="settings-section-title">System mode</h3>
+          <p className="settings-section-desc">Operational state shown across the portal.</p>
+          <div className="settings-mode-grid">
+            {MODES.map((m) => (
+              <button
+                key={m.key}
+                type="button"
+                className={`settings-mode-btn ${settings.mode === m.key ? 'active' : ''}`}
+                onClick={() => handleModeChange(m.key)}
+                disabled={saving}
+              >
+                <span className="settings-mode-label">{m.label}</span>
+                <span className="settings-mode-hint">{m.hint}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="glass-panel settings-section">
+          <h3 className="settings-section-title">General</h3>
+          <form onSubmit={handleGeneralSave} className="settings-form">
+            <div className="form-group">
+              <label htmlFor="org-name">Organization name</label>
+              <input
+                id="org-name"
+                value={settings.organization_name || ''}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, organization_name: e.target.value }))
+                }
+                placeholder="WaterWise"
+              />
+            </div>
+
+            <label className="settings-toggle">
+              <input
+                type="checkbox"
+                checked={!!settings.auto_assign_nearest}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, auto_assign_nearest: e.target.checked }))
+                }
+              />
+              <span>
+                <strong>Auto-assign nearest technician</strong>
+                <small>When a valid SMS report arrives, assign the closest available tech.</small>
+              </span>
+            </label>
+
+            <label className="settings-toggle">
+              <input
+                type="checkbox"
+                checked={!!settings.send_confirmation_sms}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, send_confirmation_sms: e.target.checked }))
+                }
+              />
+              <span>
+                <strong>Confirmation SMS to reporters</strong>
+                <small>Send Africa&apos;s Talking reply after a successful fault report.</small>
+              </span>
+            </label>
+
+            <button type="submit" className="btn-primary" disabled={saving} style={{ marginTop: 0 }}>
+              {saving ? 'Saving…' : 'Save general settings'}
+            </button>
+          </form>
+        </section>
+
+        <section className="glass-panel settings-section">
+          <h3 className="settings-section-title">Integrations</h3>
+          <p className="settings-section-desc">Server configuration (read-only).</p>
+          <ul className="settings-info-list">
+            <li>
+              <span>API URL</span>
+              <code className="mono">{API_BASE}</code>
+            </li>
+            <li>
+              <span>SMS gateway (APK)</span>
+              <span className={settings.sms_gateway_configured ? 'settings-ok' : 'settings-warn'}>
+                {settings.sms_gateway_configured ? 'Configured' : 'Not set on server'}
+              </span>
+            </li>
+            <li>
+              <span>SMS provider (Africa&apos;s Talking)</span>
+              <span className={settings.sms_provider_configured ? 'settings-ok' : 'settings-warn'}>
+                {settings.sms_provider_configured ? 'Configured' : 'Not set on server'}
+              </span>
+            </li>
+            <li>
+              <span>Inbound webhook</span>
+              <code className="mono">{`${API_BASE}/api/sms/incoming/`}</code>
+            </li>
+          </ul>
+          <p className="settings-section-desc" style={{ marginTop: '0.75rem' }}>
+            Configure the mobile SMS relay app with the webhook URL and shared secret from your server
+            environment.
+          </p>
+        </section>
+
+        <section className="glass-panel settings-section">
+          <h3 className="settings-section-title">Account</h3>
+          <form onSubmit={handlePasswordChange} className="settings-form">
+            <div className="form-group">
+              <label htmlFor="old-pw">Current password</label>
+              <input
+                id="old-pw"
+                type="password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="new-pw">New password</label>
+              <input
+                id="new-pw"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="confirm-pw">Confirm new password</label>
+              <input
+                id="confirm-pw"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
+            </div>
+            <button type="submit" className="btn-secondary" disabled={passwordLoading}>
+              {passwordLoading ? 'Updating…' : 'Change password'}
+            </button>
+          </form>
+
+          {user?.is_staff && (
+            <Link to="/users" className="btn-secondary btn-sm" style={{ marginTop: '1rem', textDecoration: 'none' }}>
+              Manage user accounts
+            </Link>
+          )}
+        </section>
+      </div>
+    </div>
+  );
 };
 
 export default Settings;

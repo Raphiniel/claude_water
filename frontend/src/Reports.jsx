@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { formatDate } from './App';
 
 import { API_BASE as API } from './apiConfig';
+import TableRowMenu, { TableRowMenuItem } from './TableRowMenu';
 
 const FAULT_LABELS = {
   PUMP: 'Pump Failure', LEAK: 'Pipe Leak', DRY: 'Borehole Dry',
@@ -13,10 +14,17 @@ const FAULT_LABELS = {
 
 const STATUSES = ['ALL', 'PENDING', 'IN_PROGRESS', 'RESOLVED'];
 
+const FILTER_CARDS = [
+  { key: 'ALL', label: 'All reports', dot: 'purple', hint: 'Full queue' },
+  { key: 'PENDING', label: 'Pending', dot: 'amber', hint: 'Awaiting assignment' },
+  { key: 'IN_PROGRESS', label: 'In progress', dot: 'blue', hint: 'Technician assigned' },
+  { key: 'RESOLVED', label: 'Resolved', dot: 'green', hint: 'Closed tickets' },
+];
+
 const mapsDirUrl = (lat, lng) =>
   `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving`;
 
-const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign }) => {
+const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign, onResolve, resolving }) => {
   const [full, setFull] = useState(report);
   const [loadErr, setLoadErr] = useState(null);
 
@@ -106,13 +114,26 @@ const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign }) 
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginTop: '1.25rem', flexWrap: 'wrap' }}>
+          <button type="button" className="btn-secondary" onClick={() => navigate('/map')}>
+            Live map
+          </button>
           <button type="button" className="btn-secondary" onClick={() => navigate(`/waterpoints?flyTo=${full.water_point_code}`)}>
-            View on live map
+            Water point
           </button>
           {full.status !== 'RESOLVED' && (
-            <button type="button" className="btn-primary" onClick={() => onAssign(full)}>
-              Assign technician…
-            </button>
+            <>
+              <button type="button" className="btn-primary" onClick={() => onAssign(full)}>
+                Assign technician…
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={resolving}
+                onClick={() => onResolve(full)}
+              >
+                {resolving ? 'Closing…' : 'Mark resolved'}
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -251,7 +272,7 @@ const AssignModal = ({ report, onClose, onAssigned, authHeader }) => {
             <div className="empty-state" style={{ padding: '1.5rem' }}>No technicians registered yet.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '240px', overflowY: 'auto' }}>
-              {technicians.map(t => (
+              {technicians.filter((t) => t.is_active !== false).map(t => (
                 <button
                   key={t.id}
                   onClick={() => assign(t.id)}
@@ -295,6 +316,8 @@ const Reports = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [assigningReport, setAssigningReport] = useState(null);
   const [detailReport, setDetailReport] = useState(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const reopenDetailAfterAssign = useRef(false);
   const { user } = useAuth();
   const location = useLocation();
@@ -334,6 +357,32 @@ const Reports = () => {
     }
   };
 
+  const applyFilter = (status) => {
+    setStatusFilter(status);
+    const params = new URLSearchParams(location.search);
+    if (status === 'ALL') params.delete('status');
+    else params.set('status', status);
+    const q = params.toString();
+    navigate({ pathname: '/reports', search: q ? `?${q}` : '' }, { replace: true });
+  };
+
+  const markResolved = async (report) => {
+    setStatusUpdatingId(report.id);
+    try {
+      const res = await axios.post(
+        `${API}/api/reports/${report.id}/status/`,
+        { status: 'RESOLVED' },
+        { headers: authHeader() },
+      );
+      handleAssigned(res.data);
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Could not update status';
+      setFetchError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
+
   const handleRowClick = (report) => {
     setDetailReport(report);
   };
@@ -356,16 +405,26 @@ const Reports = () => {
 
       {fetchError && <div className="alert alert-error" style={{ marginBottom: '1.5rem' }}>API error: {fetchError}</div>}
 
-      <div className="glass-panel">
-        <div className="filter-tabs">
-          {STATUSES.map(s => (
-            <button key={s} className={`filter-tab ${statusFilter === s ? 'active' : ''}`} onClick={() => setStatusFilter(s)}>
-              {s.replace('_', ' ')}
-              <span className="filter-tab-count">{counts[s]}</span>
-            </button>
-          ))}
-        </div>
+      <div className="reports-summary-cards">
+        {FILTER_CARDS.map((card) => (
+          <button
+            key={card.key}
+            type="button"
+            className={`reports-filter-card ${statusFilter === card.key ? 'active' : ''}`}
+            onClick={() => applyFilter(card.key)}
+            aria-pressed={statusFilter === card.key}
+          >
+            <span className="reports-filter-card-head">
+              <span className={`dashboard-kpi-dot ${card.dot}`} aria-hidden />
+              {card.label}
+            </span>
+            <strong>{counts[card.key] ?? 0}</strong>
+            <small>{card.hint}</small>
+          </button>
+        ))}
+      </div>
 
+      <div className="glass-panel">
         {loading ? (
           <div className="loading">Loading reports...</div>
         ) : filtered.length === 0 ? (
@@ -386,7 +445,7 @@ const Reports = () => {
                   <th>Status</th>
                   <th>Assigned To</th>
                   <th>Reported</th>
-                  <th></th>
+                  <th className="actions-col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -395,7 +454,7 @@ const Reports = () => {
                     key={r.id}
                     className="clickable-row"
                     onClick={() => handleRowClick(r)}
-                    title="Click for full details"
+                    title="Click row for full details"
                   >
                     <td className="muted">{i + 1}</td>
                     <td className="mono">{r.ticket_number}</td>
@@ -405,18 +464,51 @@ const Reports = () => {
                     <td><span className={`status-badge status-${r.status?.toLowerCase()}`}>{r.status?.replace('_', ' ')}</span></td>
                     <td className="muted">{r.assigned_to_details?.name || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Unassigned</span>}</td>
                     <td className="muted">{formatDate(r.created_at)}</td>
-                    <td onClick={e => e.stopPropagation()}>
-                      {r.status !== 'RESOLVED' && (
-                        <button
-                          className="btn-secondary btn-sm"
+                    <td className="actions-col" onClick={(e) => e.stopPropagation()}>
+                      <TableRowMenu
+                        isOpen={openMenuId === r.id}
+                        onToggle={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
+                        onClose={() => setOpenMenuId(null)}
+                      >
+                        <TableRowMenuItem
                           onClick={() => {
-                            reopenDetailAfterAssign.current = false;
-                            setAssigningReport(r);
+                            setOpenMenuId(null);
+                            handleRowClick(r);
                           }}
                         >
-                          Assign
-                        </button>
-                      )}
+                          View details
+                        </TableRowMenuItem>
+                        <TableRowMenuItem
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            navigate(`/waterpoints?flyTo=${r.water_point_code}`);
+                          }}
+                        >
+                          View on map
+                        </TableRowMenuItem>
+                        {r.status !== 'RESOLVED' && (
+                          <>
+                            <TableRowMenuItem
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                reopenDetailAfterAssign.current = false;
+                                setAssigningReport(r);
+                              }}
+                            >
+                              Assign technician
+                            </TableRowMenuItem>
+                            <TableRowMenuItem
+                              disabled={statusUpdatingId === r.id}
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                markResolved(r);
+                              }}
+                            >
+                              {statusUpdatingId === r.id ? 'Resolving…' : 'Mark resolved'}
+                            </TableRowMenuItem>
+                          </>
+                        )}
+                      </TableRowMenu>
                     </td>
                   </tr>
                 ))}
@@ -437,6 +529,8 @@ const Reports = () => {
             setDetailReport(null);
             setAssigningReport(r);
           }}
+          onResolve={markResolved}
+          resolving={statusUpdatingId === detailReport.id}
         />
       )}
 

@@ -3,6 +3,13 @@ import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { API_BASE as API } from './apiConfig';
 
+const ROLE_LABELS = {
+  technician: 'Technician',
+  community_leader: 'Community leader',
+  admin: 'Admin',
+  superuser: 'Superuser',
+};
+
 const Users = () => {
   const { user } = useAuth();
   const authHeader = useCallback(() => ({ Authorization: `Bearer ${user.token}` }), [user.token]);
@@ -15,8 +22,8 @@ const Users = () => {
     username: '',
     email: '',
     password: '',
-    is_staff: false,
-    is_superuser: false,
+    role: 'technician',
+    grantSuperuser: false,
   });
 
   const load = useCallback(async () => {
@@ -43,24 +50,28 @@ const Users = () => {
     setCreating(true);
     setError(null);
     try {
-      await axios.post(
-        `${API}/api/users/`,
-        {
-          username: form.username.trim(),
-          email: form.email.trim(),
-          password: form.password,
-          is_staff: form.is_staff,
-          is_superuser: form.is_superuser,
-        },
-        { headers: authHeader() },
-      );
-      setForm({ username: '', email: '', password: '', is_staff: false, is_superuser: false });
+      const payload = {
+        username: form.username.trim(),
+        email: form.email.trim(),
+        password: form.password,
+      };
+      if (user.is_superuser && form.grantSuperuser) {
+        payload.is_superuser = true;
+      } else {
+        payload.role = form.role;
+      }
+      await axios.post(`${API}/api/users/`, payload, { headers: authHeader() });
+      setForm({
+        username: '',
+        email: '',
+        password: '',
+        role: 'technician',
+        grantSuperuser: false,
+      });
       await load();
     } catch (e) {
       const d = e.response?.data;
-      setError(
-        typeof d === 'object' ? JSON.stringify(d) : d || 'Create failed.',
-      );
+      setError(typeof d === 'object' ? JSON.stringify(d) : d || 'Create failed.');
     } finally {
       setCreating(false);
     }
@@ -79,105 +90,124 @@ const Users = () => {
 
   if (!user?.is_staff) {
     return (
-      <div className="page-wrap">
-        <h1>User accounts</h1>
-        <p className="muted">Staff access is required to manage user accounts.</p>
+      <div className="settings-page">
+        <div className="page-header">
+          <div>
+            <h2 className="page-title">User accounts</h2>
+            <p className="page-subtitle">Staff access is required to manage accounts.</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="page-wrap">
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ marginBottom: '0.35rem' }}>User accounts</h1>
-        <p className="muted" style={{ maxWidth: '640px' }}>
-          Create sign-in accounts for coordinators and technicians. Staff users can use the full admin
-          portal; non-staff accounts can sign in to the mobile app for field navigation only unless you
-          grant staff access (superuser only).
-        </p>
+    <div className="settings-page">
+      <div className="page-header">
+        <div>
+          <h2 className="page-title">User accounts</h2>
+          <p className="page-subtitle">
+            Technicians use the field app; community leaders and admins use this portal. Admins may
+            configure the SMS relay APK. Only a superuser can create another superuser.
+          </p>
+        </div>
       </div>
 
       {error && (
-        <div className="error-message" style={{ marginBottom: '1rem' }}>
+        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
           {error}
         </div>
       )}
 
-      <div className="glass-panel" style={{ padding: '1.25rem', marginBottom: '1.5rem', maxWidth: '520px' }}>
-        <h3 style={{ marginBottom: '1rem', fontSize: '1.05rem' }}>Create account</h3>
-        <form onSubmit={createUser} className="login-form" style={{ gap: '0.75rem' }}>
-          <div className="form-group">
-            <label>Username</label>
-            <input
-              value={form.username}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
-              required
-              autoComplete="off"
-            />
-          </div>
-          <div className="form-group">
-            <label>Email (optional)</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              autoComplete="off"
-            />
-          </div>
-          <div className="form-group">
-            <label>Password (min 8 characters)</label>
-            <input
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-              minLength={8}
-              autoComplete="new-password"
-            />
-          </div>
-          {user.is_superuser && (
-            <>
-              <label className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div className="settings-sections">
+        <section className="glass-panel settings-section">
+          <h3 className="settings-section-title">Create account</h3>
+          <form onSubmit={createUser} className="settings-form">
+            <div className="form-group">
+              <label htmlFor="user-username">Username</label>
+              <input
+                id="user-username"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                required
+                autoComplete="off"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="user-email">Email (optional)</label>
+              <input
+                id="user-email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                autoComplete="off"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="user-password">Password (min 8 characters)</label>
+              <input
+                id="user-password"
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
+            </div>
+            {!(user.is_superuser && form.grantSuperuser) && (
+              <div className="form-group">
+                <label htmlFor="user-role">Role</label>
+                <select
+                  id="user-role"
+                  className="form-select"
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                >
+                  <option value="technician">Technician — field app (maps / jobs)</option>
+                  <option value="community_leader">Community leader — web portal</option>
+                  <option value="admin">Admin — full portal + SMS relay handset</option>
+                </select>
+              </div>
+            )}
+            {user.is_superuser && (
+              <label className="settings-toggle">
                 <input
                   type="checkbox"
-                  checked={form.is_staff}
-                  onChange={(e) => setForm({ ...form, is_staff: e.target.checked })}
+                  checked={form.grantSuperuser}
+                  onChange={(e) => setForm({ ...form, grantSuperuser: e.target.checked })}
                 />
-                Staff (can access admin portal &amp; user management)
+                <span>
+                  <strong>Create Django superuser</strong>
+                  <small>Full control — role selector ignored.</small>
+                </span>
               </label>
-              <label className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="checkbox"
-                  checked={form.is_superuser}
-                  onChange={(e) => setForm({ ...form, is_superuser: e.target.checked })}
-                />
-                Superuser
-              </label>
-            </>
-          )}
-          <button type="submit" className="btn-primary" disabled={creating}>
-            {creating ? 'Creating…' : 'Create user'}
-          </button>
-        </form>
+            )}
+            <button type="submit" className="btn-primary" disabled={creating}>
+              {creating ? 'Creating…' : 'Create user'}
+            </button>
+          </form>
+        </section>
       </div>
 
-      <div className="glass-panel" style={{ padding: '0' }}>
-        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <h3 style={{ fontSize: '1.05rem', margin: 0 }}>All users</h3>
-        </div>
+      <section className="glass-panel settings-section users-table-section">
+        <h3 className="settings-section-title">All users</h3>
+        <p className="settings-section-desc">Portal and field accounts registered on the server.</p>
         {loading ? (
-          <div className="loading" style={{ padding: '2rem' }}>
+          <div className="loading" style={{ padding: '1.5rem 0' }}>
             Loading…
           </div>
+        ) : list.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>No users returned.</p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="users-table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
                   <th>Username</th>
                   <th>Email</th>
-                  <th>Staff</th>
-                  <th>Superuser</th>
+                  <th>Role</th>
+                  <th>SMS relay (APK)</th>
                   <th>Joined</th>
                   <th />
                 </tr>
@@ -194,8 +224,8 @@ const Users = () => {
                       ) : null}
                     </td>
                     <td className="muted">{u.email || '—'}</td>
-                    <td>{u.is_staff ? 'Yes' : '—'}</td>
-                    <td>{u.is_superuser ? 'Yes' : '—'}</td>
+                    <td>{ROLE_LABELS[u.role] || u.role || '—'}</td>
+                    <td className="muted">{u.can_configure_sms_gateway ? 'Yes' : '—'}</td>
                     <td className="muted">
                       {u.date_joined ? new Date(u.date_joined).toLocaleDateString() : '—'}
                     </td>
@@ -215,14 +245,9 @@ const Users = () => {
                 ))}
               </tbody>
             </table>
-            {list.length === 0 && !loading && (
-              <p className="muted" style={{ padding: '1.5rem' }}>
-                No users returned.
-              </p>
-            )}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 };

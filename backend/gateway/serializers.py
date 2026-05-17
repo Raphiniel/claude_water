@@ -5,7 +5,7 @@ class TechnicianSerializer(serializers.ModelSerializer):
     class Meta:
         model = Technician
         fields = [
-            'id', 'name', 'phone', 'latitude', 'longitude', 'is_available',
+            'id', 'name', 'phone', 'latitude', 'longitude', 'is_available', 'is_active',
             'field_token', 'created_at',
         ]
         read_only_fields = ['field_token', 'created_at']

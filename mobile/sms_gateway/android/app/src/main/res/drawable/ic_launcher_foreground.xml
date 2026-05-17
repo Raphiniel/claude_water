@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lime WaterWise pin / droplet (adaptive icon foreground). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#A3E635"
+        android:fillType="evenOdd"
+        android:pathData="M54,22c-14,0 -26,12 -26,28c0,14 10,28 26,40c16,-12 26,-26 26,-40c0,-16 -12,-28 -26,-28zM54,48m-9,0a9,9 0,1,1,18,0a9,9 0,1,1,-18,0" />
+</vector>

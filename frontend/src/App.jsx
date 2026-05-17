@@ -312,23 +312,31 @@ const Dashboard = () => {
             <small>All systems operational</small>
           </button>
 
-          <div className="dashboard-kpi-card">
+          <button
+            type="button"
+            className="dashboard-kpi-card"
+            onClick={() => navigate('/waterpoints?status=CLEAR')}
+          >
             <div className="dashboard-kpi-head">
               <span className="dashboard-kpi-dot green" />
               <span>System Uptime</span>
             </div>
             <strong>{uptime.toFixed(1)}%</strong>
-            <small>Last 30 days</small>
-          </div>
+            <small>Water points with no active faults</small>
+          </button>
 
-          <div className="dashboard-kpi-card">
+          <button
+            type="button"
+            className="dashboard-kpi-card"
+            onClick={() => navigate('/technicians?status=AVAILABLE')}
+          >
             <div className="dashboard-kpi-head">
               <span className="dashboard-kpi-dot purple" />
               <span>Technicians Available</span>
             </div>
             <strong>{activeTechs} / {totalTechs || 0}</strong>
             <small>{activeTechs > 0 ? 'Online now' : 'No technicians online'}</small>
-          </div>
+          </button>
         </aside>
       </div>
 

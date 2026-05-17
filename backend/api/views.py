@@ -13,6 +13,8 @@ from .serializers import (
     UserAccountSerializer,
     AdminUserCreateSerializer,
 )
+from .roles import user_can_configure_sms_gateway, user_primary_role
+from gateway.models import Technician
 from gateway.sms_service import send_outbound_sms
 
 logger = logging.getLogger(__name__)
@@ -30,6 +32,8 @@ def current_user_profile(request):
             "email": u.email or "",
             "is_staff": bool(u.is_staff),
             "is_superuser": bool(u.is_superuser),
+            "role": user_primary_role(u),
+            "can_configure_sms_gateway": user_can_configure_sms_gateway(u),
         }
     )
 
@@ -37,7 +41,8 @@ def current_user_profile(request):
 class UserAccountViewSet(viewsets.ModelViewSet):
     """Django user accounts — staff-only (Django admin–style access)."""
 
-    queryset = User.objects.all().order_by("username")
+    def get_queryset(self):
+        return User.objects.all().order_by("username").prefetch_related("groups")
     permission_classes = [IsAdminUser]
     http_method_names = ["get", "post", "delete", "head", "options"]
 
@@ -45,6 +50,15 @@ class UserAccountViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return AdminUserCreateSerializer
         return UserAccountSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(
+            UserAccountSerializer(user, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     def destroy(self, request, *args, **kwargs):
         target = self.get_object()
@@ -92,29 +106,85 @@ def sms_webhook(request):
     except Exception as e:
         logger.error(f"Failed to send Africa's Talking SMS reply: {e}")
 
+def _normalize_phone(phone):
+    p = str(phone or '').strip()
+    if not p:
+        return None
+    if not p.startswith('+'):
+        if p.startswith('0'):
+            p = '+263' + p[1:]
+        else:
+            p = '+' + p
+    return p
+
+
+def _resolve_sms_recipients(recipient_key):
+    """Map UI recipient keys to E.164 phone numbers."""
+    if recipient_key in ('all_techs', 'all_technicians', 'all_active'):
+        qs = Technician.objects.filter(is_active=True).exclude(phone='')
+        return [_normalize_phone(p) for p in qs.values_list('phone', flat=True)]
+    if recipient_key in ('available_technicians', 'available'):
+        qs = Technician.objects.filter(is_active=True, is_available=True).exclude(phone='')
+        return [_normalize_phone(p) for p in qs.values_list('phone', flat=True)]
+    if isinstance(recipient_key, str) and recipient_key.startswith('tech:'):
+        try:
+            tech_id = int(recipient_key.split(':', 1)[1])
+            tech = Technician.objects.filter(pk=tech_id, is_active=True).first()
+            if tech and tech.phone:
+                return [_normalize_phone(tech.phone)]
+        except (ValueError, TypeError):
+            return []
+        return []
+    phone = _normalize_phone(recipient_key)
+    return [phone] if phone else []
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def send_sms(request):
     """
-    Endpoint for frontend to send outbound SMS via Africa's Talking.
+    Send outbound SMS via Africa's Talking.
+    recipient: E.164 number, tech:<id>, all_techs, or available_technicians
     """
     recipient = request.data.get('recipient')
-    message = request.data.get('message')
-    
+    message = (request.data.get('message') or '').strip()
+
     if not recipient or not message:
         return Response({'error': 'Recipient and message are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-    # Ensure recipient is formatted correctly (e.g. +263...)
-    if not recipient.startswith('+'):
-        return Response({'error': 'Recipient must include country code starting with +'}, status=status.HTTP_400_BAD_REQUEST)
-        
-    try:
-        response = send_outbound_sms(message, [recipient])
-        logger.info(f"Outbound SMS sent to {recipient}: {response}")
-        return Response({'status': 'Message sent successfully', 'data': response}, status=status.HTTP_200_OK)
-    except Exception as e:
-        logger.error(f"Failed to send Africa's Talking SMS: {e}")
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    phones = [p for p in _resolve_sms_recipients(recipient) if p and p.startswith('+')]
+    if not phones:
+        return Response(
+            {'error': 'No valid recipients. Use +263… or pick technicians with phone numbers.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    sent = []
+    errors = []
+    for phone in phones:
+        try:
+            response = send_outbound_sms(message, [phone])
+            logger.info('Outbound SMS sent to %s: %s', phone, response)
+            sent.append(phone)
+        except Exception as e:
+            logger.error('Failed to send SMS to %s: %s', phone, e)
+            errors.append({'phone': phone, 'error': str(e)})
+
+    if not sent:
+        return Response(
+            {'error': errors[0]['error'] if errors else 'Send failed'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return Response(
+        {
+            'status': 'ok',
+            'sent_count': len(sent),
+            'recipients': sent,
+            'errors': errors,
+        },
+        status=status.HTTP_200_OK,
+    )
         
 
 class SystemSettingViewSet(viewsets.ModelViewSet):

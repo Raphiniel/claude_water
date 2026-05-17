@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'api_config.dart';
 import 'app_models.dart';
 import 'auth_storage.dart';
 import 'brand_assets.dart';
@@ -24,6 +25,12 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _originCtrl.text = kDefaultWaterwiseApiOrigin;
+  }
+
+  @override
   void dispose() {
     _originCtrl.dispose();
     _userCtrl.dispose();
@@ -36,13 +43,16 @@ class _LoginScreenState extends State<LoginScreen> {
       _busy = true;
       _error = null;
     });
-    final origin = normalizeApiOrigin(_originCtrl.text);
+    var origin = normalizeApiOrigin(_originCtrl.text);
+    if (origin.isEmpty) {
+      origin = kDefaultWaterwiseApiOrigin;
+    }
     final username = _userCtrl.text.trim();
     final password = _passCtrl.text;
-    if (origin.isEmpty || username.isEmpty || password.isEmpty) {
+    if (username.isEmpty || password.isEmpty) {
       setState(() {
         _busy = false;
-        _error = 'Enter server URL, username, and password.';
+        _error = 'Enter username and password.';
       });
       return;
     }
@@ -121,6 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       final isStaff = me['is_staff'] == true;
+      final canSms = me['can_configure_sms_gateway'] == true;
       final uname = me['username'] as String? ?? username;
 
       await AuthStorage().saveSession(
@@ -129,6 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
         refresh: refresh,
         username: uname,
         isStaff: isStaff,
+        canConfigureSmsGateway: canSms,
       );
 
       if (!mounted) return;
@@ -139,6 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
           refreshToken: refresh,
           username: uname,
           isStaff: isStaff,
+          canConfigureSmsGateway: canSms,
         ),
       );
     } catch (e) {
@@ -190,7 +203,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _originCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Server URL',
-                      hintText: 'https://your-waterwise-server.com',
+                      hintText: kDefaultWaterwiseApiOrigin,
+                      helperText: 'Pre-filled for WaterWise production; change only for another host.',
                       prefixIcon: Icon(Icons.cloud_outlined),
                     ),
                     keyboardType: TextInputType.url,

@@ -7,6 +7,15 @@ class SystemSetting(models.Model):
         ('MAINTENANCE', 'Maintenance'),
     ]
     mode = models.CharField(max_length=20, choices=MODE_CHOICES, default='NORMAL')
+    organization_name = models.CharField(max_length=120, default='WaterWise')
+    auto_assign_nearest = models.BooleanField(
+        default=True,
+        help_text='When enabled, new SMS fault reports auto-assign the nearest available technician.',
+    )
+    send_confirmation_sms = models.BooleanField(
+        default=True,
+        help_text='Send Africa\'s Talking confirmation SMS to reporters after a valid report.',
+    )
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):

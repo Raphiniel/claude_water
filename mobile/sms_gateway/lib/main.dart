@@ -29,12 +29,15 @@ Future<void> waterwiseSmsBackgroundHandler(SmsMessage message) async {
   await processInboundSms(
     message,
     onLog: (s) => debugPrint('[WaterWise SMS bg] $s'),
+    useBackgroundTelephony: true,
   );
 }
 
 Future<void> processInboundSms(
   SmsMessage msg, {
   void Function(String line)? onLog,
+  /// Use [Telephony.backgroundInstance] for sends from the headless SMS isolate (locked phone).
+  bool useBackgroundTelephony = false,
 }) async {
   void log(String m) => onLog?.call(m);
 
@@ -74,6 +77,10 @@ Future<void> processInboundSms(
     headers['X-SMS-Gateway-Secret'] = secret;
   }
 
+  final httpTimeout = Duration(
+    seconds: useBackgroundTelephony ? 90 : 45,
+  );
+
   try {
     log('POST → $uri (from $from)');
     final response = await http
@@ -82,7 +89,7 @@ Future<void> processInboundSms(
           headers: headers,
           body: {'from': from, 'text': text},
         )
-        .timeout(const Duration(seconds: 45));
+        .timeout(httpTimeout);
 
     log('HTTP ${response.statusCode}');
 
@@ -100,14 +107,20 @@ Future<void> processInboundSms(
     if (reply &&
         outbound is String &&
         outbound.trim().isNotEmpty) {
-      final telephony = Telephony.instance;
-      await telephony.sendSms(
-        to: from,
-        message: outbound.trim(),
-        isMultipart: outbound.length > 160,
-        subscriptionId: msg.subscriptionId,
-      );
-      log('Reply SMS sent to $from (HTTP ${response.statusCode})');
+      final telephony =
+          useBackgroundTelephony ? Telephony.backgroundInstance : Telephony.instance;
+      try {
+        await telephony.sendSms(
+          to: from,
+          message: outbound.trim(),
+          isMultipart: outbound.length > 160,
+          subscriptionId: msg.subscriptionId,
+        );
+        log('Reply SMS sent to $from (HTTP ${response.statusCode})');
+      } catch (e, st) {
+        log('sendSms failed: $e');
+        debugPrintStack(stackTrace: st);
+      }
       return;
     }
 
@@ -437,7 +450,7 @@ class _GatewayHomePageState extends State<GatewayHomePage>
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final staff = widget.session.isStaff;
+    final staff = widget.session.canConfigureSmsGateway;
 
     return Scaffold(
       backgroundColor: scheme.surface,
