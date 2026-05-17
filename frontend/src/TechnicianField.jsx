@@ -17,6 +17,10 @@ const TechnicianField = () => {
   const [pos, setPos] = useState(null);
   const [posError, setPosError] = useState(null);
   const [lastPost, setLastPost] = useState(null);
+  const [closingJobId, setClosingJobId] = useState(null);
+  const [closeTargetId, setCloseTargetId] = useState(null);
+  const [closeNotes, setCloseNotes] = useState('');
+  const [closeError, setCloseError] = useState(null);
 
   const fetchJobs = useCallback(async (t) => {
     if (!t) return;
@@ -75,6 +79,29 @@ const TechnicianField = () => {
       return;
     }
     setSaved(true);
+  };
+
+  const closeJob = async (jobId) => {
+    const notes = closeNotes.trim();
+    if (notes.length < 3) {
+      setCloseError('Enter at least 3 characters describing the fix.');
+      return;
+    }
+    setClosingJobId(jobId);
+    setCloseError(null);
+    try {
+      await axios.post(`${API}/api/field/jobs/${jobId}/close/`, {
+        token,
+        closure_notes: notes,
+      });
+      setCloseNotes('');
+      setCloseTargetId(null);
+      await fetchJobs(token);
+    } catch (e) {
+      setCloseError(e.response?.data?.error || 'Could not close fault.');
+    } finally {
+      setClosingJobId(null);
+    }
   };
 
   const logoutField = () => {
@@ -148,6 +175,7 @@ const TechnicianField = () => {
             </div>
 
             {error && <div style={{ color: '#fca5a5', fontSize: '0.85rem', marginBottom: 10 }}>{error}</div>}
+            {closeError && <div style={{ color: '#fca5a5', fontSize: '0.85rem', marginBottom: 10 }}>{closeError}</div>}
 
             <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#64748b', margin: '4px 0 8px' }}>My open jobs</div>
             {jobs.length === 0 ? (
@@ -181,6 +209,91 @@ const TechnicianField = () => {
                       </a>
                     ) : (
                       <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#fbbf24' }}>Site has no map coordinates yet.</div>
+                    )}
+                    {closeTargetId === j.id ? (
+                      <div style={{ marginTop: 12 }}>
+                        <label style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', marginBottom: 6 }}>
+                          Closure notes (required)
+                        </label>
+                        <textarea
+                          value={closeNotes}
+                          onChange={(e) => setCloseNotes(e.target.value)}
+                          rows={3}
+                          placeholder="What was fixed on site?"
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            padding: '0.55rem 0.65rem',
+                            borderRadius: 8,
+                            border: '1px solid rgba(148,163,184,0.3)',
+                            background: 'rgba(0,0,0,0.2)',
+                            color: '#f1f5f9',
+                            fontSize: '0.82rem',
+                            resize: 'vertical',
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            onClick={() => closeJob(j.id)}
+                            disabled={closingJobId === j.id}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              fontSize: '0.8rem',
+                              background: '#16a34a',
+                              color: '#fff',
+                            }}
+                          >
+                            {closingJobId === j.id ? 'Closing…' : 'Confirm close'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCloseTargetId(null);
+                              setCloseNotes('');
+                              setCloseError(null);
+                            }}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(148,163,184,0.3)',
+                              background: 'transparent',
+                              color: '#cbd5e1',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCloseTargetId(j.id);
+                          setCloseNotes('');
+                          setCloseError(null);
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          marginTop: 10,
+                          padding: '8px 12px',
+                          borderRadius: 10,
+                          border: '1px solid rgba(148,163,184,0.35)',
+                          background: 'rgba(148,163,184,0.1)',
+                          color: '#e2e8f0',
+                          fontWeight: 600,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Close fault
+                      </button>
                     )}
                   </div>
                 ))}

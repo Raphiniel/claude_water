@@ -53,6 +53,29 @@ def send_confirmation_sms(phone, ticket_number, wp_code, technician_name=None):
         return False
 
 
+def send_closure_sms(phone, ticket_number, wp_code, closure_notes=''):
+    """Notify reporter that their fault ticket has been resolved."""
+    if not sms:
+        logger.error("SMS service not initialized")
+        return False
+
+    base = f"WaterWise: Fault {ticket_number} at {wp_code} is resolved."
+    notes = (closure_notes or '').strip()
+    if notes:
+        snippet = notes if len(notes) <= 120 else notes[:117] + '...'
+        message = f"{base} {snippet}"
+    else:
+        message = base
+
+    try:
+        response = send_outbound_sms(message, [phone])
+        logger.info("Closure SMS sent to %s: %s", phone, response)
+        return True
+    except Exception as e:
+        logger.error("Error sending closure SMS to %s: %s", phone, e)
+        return False
+
+
 def send_error_sms(phone, error_message):
     """Sends a rejection reply explaining the format or validation error."""
     if not sms:

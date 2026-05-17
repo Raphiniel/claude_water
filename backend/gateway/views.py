@@ -17,6 +17,7 @@ from .sms_dialog import handle_gateway_sms_dialog
 from .validators import validate_sms_report
 from .sms_service import send_confirmation_sms, send_error_sms
 from .serializers import FaultReportSerializer, WaterPointSerializer, TechnicianSerializer
+from .fault_closure import FaultAlreadyClosedError, close_fault_report
 from api.settings_helpers import auto_assign_nearest_enabled, send_confirmation_sms_enabled
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,12 @@ logger = logging.getLogger(__name__)
 
 def _system_auto_assign_enabled():
     return auto_assign_nearest_enabled()
+
+
+def _technician_from_token(token: str):
+    """Resolve active technician from field portal UUID token."""
+    uid = uuid_mod.UUID(str(token).strip())
+    return Technician.objects.get(field_token=uid, is_active=True)
 
 
 def _incoming_sms_fields(request):
@@ -272,7 +279,9 @@ class FaultReportDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return FaultReport.objects.select_related('water_point', 'assigned_to').all()
+        return FaultReport.objects.select_related(
+            'water_point', 'assigned_to', 'closed_by_staff', 'closed_by_technician',
+        ).all()
 
 
 @api_view(['POST'])
@@ -287,8 +296,7 @@ def field_update_position(request):
     if lat is None or lng is None:
         return Response({'error': 'latitude and longitude are required'}, status=status.HTTP_400_BAD_REQUEST)
     try:
-        uid = uuid_mod.UUID(token)
-        tech = Technician.objects.get(field_token=uid, is_active=True)
+        tech = _technician_from_token(token)
     except (Technician.DoesNotExist, ValueError, TypeError, AttributeError):
         return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
     try:
@@ -308,8 +316,7 @@ def field_my_jobs(request):
     if not token:
         return Response({'error': 'token is required'}, status=status.HTTP_400_BAD_REQUEST)
     try:
-        uid = uuid_mod.UUID(token)
-        tech = Technician.objects.get(field_token=uid, is_active=True)
+        tech = _technician_from_token(token)
     except (Technician.DoesNotExist, ValueError, TypeError, AttributeError):
         return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -369,11 +376,62 @@ def assign_report(request, pk):
     return Response(FaultReportSerializer(report).data)
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def field_close_job(request, pk):
+    """Assigned technician closes a job via field portal token."""
+    token = str(request.data.get('token', '')).strip()
+    if not token:
+        return Response({'error': 'token is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        tech = _technician_from_token(token)
+    except (Technician.DoesNotExist, ValueError, TypeError, AttributeError):
+        return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        report = FaultReport.objects.select_related('water_point', 'assigned_to').get(pk=pk)
+    except FaultReport.DoesNotExist:
+        return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if report.assigned_to_id != tech.id:
+        return Response(
+            {'error': 'You can only close faults assigned to you.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    notes = request.data.get('closure_notes', '')
+    try:
+        close_fault_report(report, notes=notes, technician=tech)
+    except FaultAlreadyClosedError as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    except ValueError as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    report.refresh_from_db()
+    return Response(
+        {
+            'ok': True,
+            'ticket_number': report.ticket_number,
+            'status': report.status,
+            'resolved_at': report.resolved_at,
+        }
+    )
+
+
 @api_view(['POST', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_report_status(request, pk):
+    if not request.user.is_staff:
+        return Response(
+            {'error': 'Only staff can update report status.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     try:
-        report = FaultReport.objects.select_related('water_point', 'assigned_to').get(pk=pk)
+        report = FaultReport.objects.select_related(
+            'water_point', 'assigned_to', 'closed_by_staff', 'closed_by_technician',
+        ).get(pk=pk)
     except FaultReport.DoesNotExist:
         return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -384,6 +442,17 @@ def update_report_status(request, pk):
             {'error': 'Invalid status. Use PENDING, IN_PROGRESS, or RESOLVED.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+    if new_status == 'RESOLVED':
+        notes = request.data.get('closure_notes', '')
+        try:
+            close_fault_report(report, notes=notes, staff_user=request.user)
+        except FaultAlreadyClosedError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        report.refresh_from_db()
+        return Response(FaultReportSerializer(report).data)
 
     report.status = new_status
     report.save(update_fields=['status'])

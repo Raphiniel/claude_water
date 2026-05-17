@@ -166,8 +166,11 @@ const GlobeHero = ({
   const [activeWP, setActiveWP] = useState(null);
   const [mapMode, setMapMode]   = useState('country');
   const startInMap = flatMap || initialMode === 'map';
-  const useStylizedGlobe = !flatMap;
-  const [mapMounted, setMapMounted] = useState(startInMap);
+  /** Live Map: stylized 3D globe preview; flat MapLibre map only after zoom-in click */
+  const useStylizedGlobe = !flatMap && (!liveMapLayout || mode === 'globe');
+  const [mapMounted, setMapMounted] = useState(
+    startInMap || (liveMapLayout && initialMode === 'map'),
+  );
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -249,18 +252,57 @@ const GlobeHero = ({
     }
   };
 
-  const teardownGlobe3D = (map) => {
+  const clearLiveMapTerrain = (map) => {
+    try {
+      if (map.getLayer('waterwise-hillshade')) map.removeLayer('waterwise-hillshade');
+    } catch (_) {
+      /* ignore */
+    }
     try {
       map.setTerrain(null);
     } catch (_) {
       /* ignore */
     }
+  };
+
+  const teardownGlobe3D = (map) => {
+    clearLiveMapTerrain(map);
     map.setProjection({ name: 'mercator' });
     try {
       map.setFog(null);
     } catch (_) {
       /* ignore */
     }
+  };
+
+  const restoreLiveGlobeView = (map, { immediate = false } = {}) => {
+    if (!map || !liveMapLayout) return;
+    stopRotation();
+    clearLiveMapTerrain(map);
+    setupGlobe3D(map, false);
+    lockGlobeCamera(map);
+
+    const resumeSpin = () => {
+      if (modeRef.current !== 'globe') return;
+      lockGlobeCamera(map);
+      startRotation();
+    };
+
+    if (immediate) {
+      applyGlobeView(map, globeLngRef.current, { immediate: true });
+      resumeSpin();
+      return;
+    }
+
+    map.flyTo({
+      center: [globeLngRef.current, GLOBE_LAT],
+      zoom: GLOBE_ZOOM,
+      pitch: GLOBE_PITCH,
+      bearing: 0,
+      duration: 2000,
+      essential: true,
+    });
+    map.once('moveend', resumeSpin);
   };
 
   const lockGlobeCamera = (map) => {
@@ -340,6 +382,7 @@ const GlobeHero = ({
   useEffect(() => {
     if (!mapMounted || !mapContainerRef.current || mapRef.current) return;
 
+    const liveMapFlat = liveMapLayout && modeRef.current === 'map';
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: liveMapLayout ? LIVE_TILE_STYLE : TILE_STYLE,
@@ -347,28 +390,28 @@ const GlobeHero = ({
       center: ZIM_CENTER,
       zoom: ZIM_ZOOM,
       minZoom: 4,
-      pitch: flatMap ? 0 : (liveMapLayout ? ZIM_PITCH_3D : 0),
-      bearing: flatMap ? 0 : (liveMapLayout ? ZIM_BEARING_3D : 0),
+      pitch: flatMap ? 0 : (liveMapFlat ? ZIM_PITCH_3D : 0),
+      bearing: flatMap ? 0 : (liveMapFlat ? ZIM_BEARING_3D : 0),
       antialias: true,
       interactive: true,
     });
     mapRef.current = map;
     map.on('load', () => {
-      if (liveMapLayout) setupLiveTerrain3D(map);
-      const navPos = liveMapLayout ? 'bottom-right' : (startInMap ? 'top-left' : null);
+      const navPos = liveMapLayout ? 'bottom-left' : (startInMap ? 'top-left' : null);
       if (navPos) {
         map.addControl(
-          new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }),
+          new maplibregl.NavigationControl({ showCompass: !liveMapLayout, visualizePitch: !liveMapLayout }),
           navPos
         );
       }
+      if (liveMapLayout) setupLiveTerrain3D(map);
       if (modeRef.current === 'map') {
         map.flyTo({
           center: ZIM_CENTER,
           zoom: ZIM_ZOOM,
-          pitch: flatMap ? 0 : (liveMapLayout ? ZIM_PITCH_3D : 0),
-          bearing: flatMap ? 0 : (liveMapLayout ? ZIM_BEARING_3D : 0),
-          duration: 2800,
+          pitch: flatMap ? 0 : ZIM_PITCH_3D,
+          bearing: flatMap ? 0 : ZIM_BEARING_3D,
+          duration: liveMapFlat ? 2800 : 0,
           essential: true,
         });
       }
@@ -400,6 +443,8 @@ const GlobeHero = ({
 
     const flyToZimbabwe = () => {
       stopRotation();
+      teardownGlobe3D(map);
+      unlockMapCamera(map);
       const mapPitch = flatMap ? 0 : (liveMapLayout ? ZIM_PITCH_3D : 0);
       const mapBearing = flatMap ? 0 : (liveMapLayout ? ZIM_BEARING_3D : 0);
       if (liveMapLayout) setupLiveTerrain3D(map);
@@ -438,6 +483,8 @@ const GlobeHero = ({
     Object.values(markersRef.current).forEach(m => m.remove());
     markersRef.current = {};
 
+    if (liveMapLayout && mode === 'globe') return;
+
       waterPoints.forEach(wp => {
       if (!wp.latitude || !wp.longitude) return;
       const fault = faultIndex[wp.code];
@@ -461,12 +508,29 @@ const GlobeHero = ({
       }
 
       const dot = document.createElement('div');
-      const dotSize = uniformLiveMarkers ? '12px' : flatMap ? '14px' : (hasFault ? '20px' : '15px');
-      dot.style.cssText = `
+      const dotSize = uniformLiveMarkers ? '10px' : flatMap ? '14px' : (hasFault ? '20px' : '15px');
+      const ringSize = uniformLiveMarkers ? '22px' : dotSize;
+      dot.style.cssText = uniformLiveMarkers
+        ? `
+        width:${ringSize};height:${ringSize};
+        border-radius:50%;
+        background:transparent;
+        border:2px solid rgba(163,230,53,0.85);
+        box-shadow:0 0 12px rgba(163,230,53,0.55), inset 0 0 8px rgba(163,230,53,0.25);
+        position:relative;
+        transition:transform .2s;`
+        : `
         width:${dotSize};height:${dotSize};
         border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.9);
-        box-shadow:0 2px 10px rgba(0,0,0,0.5)${uniformLiveMarkers || flatMap ? `,0 0 0 4px rgba(180,234,78,0.28)` : (hasFault ? `,0 0 0 5px ${color}44` : '')};
+        box-shadow:0 2px 10px rgba(0,0,0,0.5)${flatMap ? `,0 0 0 4px rgba(180,234,78,0.28)` : (hasFault ? `,0 0 0 5px ${color}44` : '')};
         transition:transform .2s;`;
+      if (uniformLiveMarkers) {
+        const core = document.createElement('div');
+        core.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+          width:6px;height:6px;border-radius:50%;background:#a3e635;
+          box-shadow:0 0 8px rgba(163,230,53,0.9);`;
+        dot.appendChild(core);
+      }
       el.appendChild(dot);
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
@@ -513,12 +577,15 @@ const GlobeHero = ({
     setActiveWP(null);
   };
 
-  const goToGlobe = () => {
+  const goToGlobe = (e) => {
+    e?.stopPropagation?.();
     setMode('globe');
   };
 
   const showGlobeSphere = mode === 'globe' && useStylizedGlobe;
   const showStylizedGlobe = showGlobeSphere;
+  const liveMapGlobeView = liveMapLayout && mode === 'globe' && !flatMap && !useStylizedGlobe;
+  const globeClickToZoom = !flatMap && mode === 'globe' && (showStylizedGlobe || liveMapGlobeView);
 
   return (
     <div
@@ -526,6 +593,7 @@ const GlobeHero = ({
         'globe-hero-root',
         liveMapLayout && showGlobeSphere ? 'globe-hero-root--live-sphere' : '',
         liveMapLayout ? 'globe-hero-root--live-palette' : '',
+        liveMapGlobeView ? 'globe-hero-root--live-globe' : '',
       ].filter(Boolean).join(' ')}
       style={{ position: 'relative', width: '100%', height: '100%' }}
     >
@@ -746,9 +814,11 @@ const GlobeHero = ({
         alignItems: 'center', 
         justifyContent: 'center',
         overflow: 'hidden',
-        background: liveMapLayout
-          ? (showStylizedGlobe ? 'var(--live-60, #3d4f66)' : 'var(--live-60-deep, #35465c)')
-          : (showStylizedGlobe ? '#000000' : '#020406'),
+        background: liveMapGlobeView
+          ? 'transparent'
+          : liveMapLayout
+            ? (showStylizedGlobe ? 'var(--live-60, #3d4f66)' : 'var(--live-60-deep, #35465c)')
+            : (showStylizedGlobe ? '#000000' : '#020406'),
       }}>
         
         {showGlobeSphere && (
@@ -775,11 +845,11 @@ const GlobeHero = ({
                 showGlobeSphere && !showStylizedGlobe ? 'is-spinning' : '',
                 !showGlobeSphere ? 'globe-container--flat' : '',
               ].filter(Boolean).join(' ')}
-              onClick={showGlobeSphere && !showStylizedGlobe ? handleGlobeClick : undefined}
-              role={showGlobeSphere && !showStylizedGlobe ? 'button' : undefined}
-              tabIndex={showGlobeSphere && !showStylizedGlobe ? 0 : undefined}
-              onKeyDown={showGlobeSphere && !showStylizedGlobe ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleGlobeClick(); } : undefined}
-              aria-label={showGlobeSphere && !showStylizedGlobe ? 'Zoom into Zimbabwe map' : undefined}
+              onClick={globeClickToZoom ? handleGlobeClick : undefined}
+              role={globeClickToZoom ? 'button' : undefined}
+              tabIndex={globeClickToZoom ? 0 : undefined}
+              onKeyDown={globeClickToZoom ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleGlobeClick(); } : undefined}
+              aria-label={globeClickToZoom ? 'Zoom into Zimbabwe map' : undefined}
             >
               {showStylizedGlobe && (
                 <StylizedGlobe onActivate={handleGlobeClick} brightPalette={liveMapLayout} />
@@ -802,8 +872,13 @@ const GlobeHero = ({
         </div>
 
         {mode === 'map' && showBackButton && !flatMap && (
-          <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 100 }}>
-            <button type="button" onClick={goToGlobe} style={hudBtn}>← Back to Globe</button>
+          <div
+            className={liveMapLayout ? 'live-map-back-globe' : undefined}
+            style={{ position: 'absolute', top: 20, right: 20, zIndex: 100 }}
+          >
+            <button type="button" onClick={goToGlobe} style={hudBtn} aria-label="Back to globe view">
+              ← Back to Globe
+            </button>
           </div>
         )}
       </div>

@@ -11,6 +11,7 @@ from .views import (
     nearby_technicians,
     field_update_position,
     field_my_jobs,
+    field_close_job,
 )
 
 router = DefaultRouter()
@@ -27,4 +28,5 @@ urlpatterns = [
     path('reports/<int:pk>/', FaultReportDetailView.as_view(), name='report_detail'),
     path('field/position/', field_update_position, name='field_position'),
     path('field/jobs/', field_my_jobs, name='field_jobs'),
+    path('field/jobs/<int:pk>/close/', field_close_job, name='field_close_job'),
 ]

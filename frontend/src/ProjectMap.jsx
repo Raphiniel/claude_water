@@ -17,6 +17,50 @@ function formatRelativeTime(date) {
   return `${hr}h ago`;
 }
 
+function pct(n, total) {
+  if (!total) return '0%';
+  return `${Math.round((n / total) * 100)}%`;
+}
+
+const IconDroplet = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.32 0z" />
+  </svg>
+);
+const IconSignal = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+    <circle cx="12" cy="20" r="1" fill="currentColor" />
+  </svg>
+);
+const IconAlert = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+const IconRefresh = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <polyline points="23 4 23 10 17 10" />
+    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+  </svg>
+);
+const IconTech = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+const IconInfo = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
+
 const ProjectMap = () => {
   const [waterPoints, setWaterPoints] = useState([]);
   const [reports, setReports] = useState([]);
@@ -93,16 +137,58 @@ const ProjectMap = () => {
   }, [reports, showFaultsOnly, displayPoints]);
 
   const liveTechnicians = technicians.filter((t) => t.is_available).length;
+  const total = waterPoints.length;
 
-  const mapHint =
-    viewMode === 'globe'
-      ? 'Green globe rotating — click to open Zimbabwe map'
-      : showFaultsOnly
-        ? `Showing ${displayPoints.length} point${displayPoints.length === 1 ? '' : 's'} with open faults`
-        : 'Click a marker to zoom in · colours show fault status';
+  const statCards = [
+    {
+      key: 'total',
+      label: 'Total',
+      value: total,
+      sub: 'All points',
+      icon: <IconDroplet />,
+      tone: 'default',
+      onClick: () => navigate('/waterpoints'),
+    },
+    {
+      key: 'online',
+      label: 'Online',
+      value: onlineCount,
+      sub: pct(onlineCount, total),
+      icon: <IconSignal />,
+      tone: 'ok',
+      onClick: () => navigate('/waterpoints?status=CLEAR'),
+    },
+    {
+      key: 'faults',
+      label: 'Faults',
+      value: attentionCount,
+      sub: pct(attentionCount, total),
+      icon: <IconAlert />,
+      tone: 'warn',
+      onClick: () => navigate('/reports?status=PENDING'),
+    },
+    {
+      key: 'progress',
+      label: 'In progress',
+      value: inProgressCount,
+      sub: pct(inProgressCount, total),
+      icon: <IconRefresh />,
+      tone: 'blue',
+      onClick: () => navigate('/reports?status=IN_PROGRESS'),
+    },
+    {
+      key: 'techs',
+      label: 'Techs',
+      value: liveTechnicians,
+      sub: 'Active',
+      icon: <IconTech />,
+      tone: 'muted',
+      onClick: () => navigate('/technicians?status=AVAILABLE'),
+    },
+  ];
 
   return (
-    <div className="live-map-page">
+    <div className="live-map-page live-map-page--mockup">
       <header className="live-map-header">
         <div className="live-map-header-text">
           <h1>Live Map</h1>
@@ -110,83 +196,85 @@ const ProjectMap = () => {
             Zimbabwe water points
             {lastUpdated && (
               <>
-                {' '}
-                · Updated {formatRelativeTime(lastUpdated)}
+                {' · '}
+                <span className="live-map-updated-accent">
+                  Updated {formatRelativeTime(lastUpdated)}
+                </span>
               </>
             )}
           </p>
         </div>
-        <div className="live-map-stat-strip" aria-label="Map summary">
-          <button type="button" className="live-map-stat-pill" onClick={() => navigate('/waterpoints')}>
-            <span className="live-map-stat-pill-label">Total</span>
-            <strong>{waterPoints.length}</strong>
-          </button>
-          <button
-            type="button"
-            className="live-map-stat-pill live-map-stat-pill--ok"
-            onClick={() => navigate('/waterpoints?status=CLEAR')}
-          >
-            <span className="live-map-stat-pill-label">Online</span>
-            <strong>{onlineCount}</strong>
-          </button>
-          <button
-            type="button"
-            className="live-map-stat-pill live-map-stat-pill--warn"
-            onClick={() => navigate('/reports?status=PENDING')}
-          >
-            <span className="live-map-stat-pill-label">Faults</span>
-            <strong>{attentionCount}</strong>
-          </button>
-          <button
-            type="button"
-            className="live-map-stat-pill live-map-stat-pill--muted"
-            onClick={() => navigate('/reports?status=IN_PROGRESS')}
-          >
-            <span className="live-map-stat-pill-label">In progress</span>
-            <strong>{inProgressCount}</strong>
-          </button>
-          <button
-            type="button"
-            className="live-map-stat-pill live-map-stat-pill--blue"
-            onClick={() => navigate('/technicians?status=AVAILABLE')}
-          >
-            <span className="live-map-stat-pill-label">Techs</span>
-            <strong>{liveTechnicians}</strong>
-          </button>
+        <div className="live-map-kpi-strip" aria-label="Map summary">
+          {statCards.map((card) => (
+            <button
+              key={card.key}
+              type="button"
+              className={`live-map-kpi-card live-map-kpi-card--${card.tone}`}
+              onClick={card.onClick}
+            >
+              <span className="live-map-kpi-icon">{card.icon}</span>
+              <span className="live-map-kpi-label">{card.label}</span>
+              <strong>{card.value}</strong>
+              <small>{card.sub}</small>
+            </button>
+          ))}
         </div>
       </header>
 
-      <div className="dashboard-map-card live-map-card">
-        <div className="dashboard-map-head">
-          <div>
-            <h3>Water point overview</h3>
-            <p>{mapHint}</p>
+      <div className="live-map-frame">
+        <div className="live-map-viewport">
+          <aside className="live-map-about-card" aria-label="About this map">
+            <h3>
+              <IconInfo />
+              About this map
+            </h3>
+            <p>Real-time overview of water point status across Zimbabwe.</p>
+            <ul className="live-map-about-legend">
+              <li>
+                <span className="live-map-legend-dot online" aria-hidden />
+                Online &amp; operational
+              </li>
+              <li>
+                <span className="live-map-legend-dot attention" aria-hidden />
+                Faults detected
+              </li>
+              <li>
+                <span className="live-map-legend-dot live-map-legend-dot--progress" aria-hidden />
+                Maintenance in progress
+              </li>
+              <li>
+                <span className="live-map-legend-dot live-map-legend-dot--tech" aria-hidden />
+                Technicians active
+              </li>
+            </ul>
+          </aside>
+
+          <div className="live-map-map-toolbar dashboard-map-head">
+            <div className="dashboard-map-filters live-map-filter-group">
+              <button
+                type="button"
+                className={`live-map-filter-btn${showFaultsOnly ? ' live-map-filter-active' : ''}`}
+                onClick={() => setShowFaultsOnly(true)}
+              >
+                Faults only
+              </button>
+              <button
+                type="button"
+                className={`live-map-filter-btn${!showFaultsOnly ? ' live-map-filter-active' : ''}`}
+                onClick={() => setShowFaultsOnly(false)}
+              >
+                All points
+              </button>
+              <button
+                type="button"
+                className="live-map-filter-btn live-map-filter-btn--cta"
+                onClick={() => navigate('/waterpoints')}
+              >
+                Manage points →
+              </button>
+            </div>
           </div>
-          <div className="dashboard-map-filters">
-            <button
-              type="button"
-              className={`btn-secondary btn-sm${showFaultsOnly ? ' live-map-filter-active' : ''}`}
-              onClick={() => setShowFaultsOnly(true)}
-            >
-              Faults only
-            </button>
-            <button
-              type="button"
-              className={`btn-secondary btn-sm${!showFaultsOnly ? ' live-map-filter-active' : ''}`}
-              onClick={() => setShowFaultsOnly(false)}
-            >
-              All points
-            </button>
-            <button
-              type="button"
-              className="btn-secondary btn-sm"
-              onClick={() => navigate('/waterpoints')}
-            >
-              Manage points →
-            </button>
-          </div>
-        </div>
-        <div className="dashboard-map-body live-map-map-body">
+
           <GlobeHero
             waterPoints={displayPoints}
             reports={displayReports}
@@ -197,17 +285,25 @@ const ProjectMap = () => {
             showBackButton
             onModeChange={setViewMode}
           />
-          {viewMode === 'globe' && (
-            <div className="live-map-prompt" role="note">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                <circle cx="12" cy="12" r="10" />
-                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-              <span>
-                Rotating globe — click to zoom into <em>Zimbabwe</em>
-              </span>
-            </div>
-          )}
+
+          <div className="live-map-bottom-legend" role="list" aria-label="Map legend">
+            <span className="live-map-legend-chip">
+              <span className="live-map-legend-dot online" aria-hidden />
+              Online
+            </span>
+            <span className="live-map-legend-chip">
+              <span className="live-map-legend-dot attention" aria-hidden />
+              Fault
+            </span>
+            <span className="live-map-legend-chip">
+              <span className="live-map-legend-dot live-map-legend-dot--progress" aria-hidden />
+              In progress
+            </span>
+            <span className="live-map-legend-chip">
+              <span className="live-map-legend-dot live-map-legend-dot--tech" aria-hidden />
+              Technician
+            </span>
+          </div>
         </div>
       </div>
     </div>

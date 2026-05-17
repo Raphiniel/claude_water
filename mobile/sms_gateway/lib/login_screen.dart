@@ -7,6 +7,7 @@ import 'api_config.dart';
 import 'app_models.dart';
 import 'auth_storage.dart';
 import 'brand_assets.dart';
+import 'network_errors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.onSuccess});
@@ -57,6 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    final storage = AuthStorage();
     final tokenUri = Uri.parse('$origin/api/token/');
     try {
       final tok = await http
@@ -103,44 +105,76 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      final meUri = Uri.parse('$origin/api/me/');
-      final meRes = await http
-          .get(
-            meUri,
-            headers: {
-              'Accept': 'application/json',
-              'Authorization': 'Bearer $access',
-            },
-          )
-          .timeout(const Duration(seconds: 20));
+      Map<String, dynamic>? me;
+      var profileOffline = false;
+      try {
+        final meUri = Uri.parse('$origin/api/me/');
+        final meRes = await http
+            .get(
+              meUri,
+              headers: {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer $access',
+              },
+            )
+            .timeout(const Duration(seconds: 20));
 
-      if (meRes.statusCode != 200) {
-        setState(() {
-          _busy = false;
-          _error = 'Could not load profile (/api/me/).';
-        });
-        return;
-      }
-      final me = jsonDecode(meRes.body);
-      if (me is! Map<String, dynamic>) {
-        setState(() {
-          _busy = false;
-          _error = 'Invalid profile response.';
-        });
-        return;
+        if (meRes.statusCode == 401) {
+          setState(() {
+            _busy = false;
+            _error = 'Signed in but access was rejected. Try again when online.';
+          });
+          return;
+        }
+        if (meRes.statusCode != 200) {
+          setState(() {
+            _busy = false;
+            _error = 'Could not load profile (HTTP ${meRes.statusCode}).';
+          });
+          return;
+        }
+        final decoded = jsonDecode(meRes.body);
+        if (decoded is! Map<String, dynamic>) {
+          setState(() {
+            _busy = false;
+            _error = 'Invalid profile response.';
+          });
+          return;
+        }
+        me = decoded;
+      } catch (e) {
+        if (!isNetworkError(e)) rethrow;
+        profileOffline = true;
+        final cached = await storage.tryOfflineLogin(
+          apiOrigin: origin,
+          username: username,
+          password: password,
+        );
+        me = cached != null
+            ? {
+                'username': cached.username,
+                'is_staff': cached.isStaff,
+                'can_configure_sms_gateway': cached.canConfigureSmsGateway,
+              }
+            : {
+                'username': username,
+                'is_staff': false,
+                'can_configure_sms_gateway': false,
+              };
       }
 
       final isStaff = me['is_staff'] == true;
       final canSms = me['can_configure_sms_gateway'] == true;
       final uname = me['username'] as String? ?? username;
 
-      await AuthStorage().saveSession(
+      await storage.saveSession(
         apiOrigin: origin,
         access: access,
         refresh: refresh,
         username: uname,
         isStaff: isStaff,
         canConfigureSmsGateway: canSms,
+        password: password,
       );
 
       if (!mounted) return;
@@ -152,13 +186,33 @@ class _LoginScreenState extends State<LoginScreen> {
           username: uname,
           isStaff: isStaff,
           canConfigureSmsGateway: canSms,
+          isOffline: profileOffline,
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Network error: $e';
-      });
+      if (isNetworkError(e)) {
+        final offline = await storage.tryOfflineLogin(
+          apiOrigin: origin,
+          username: username,
+          password: password,
+        );
+        if (offline != null) {
+          widget.onSuccess(offline);
+          return;
+        }
+        final hasStored = await storage.hasOfflineCredentialsFor(
+          apiOrigin: origin,
+          username: username,
+        );
+        setState(() {
+          _error = loginOfflineErrorMessage(hasStoredCredentials: hasStored);
+        });
+      } else {
+        setState(() {
+          _error = loginUnreachableServerMessage();
+        });
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

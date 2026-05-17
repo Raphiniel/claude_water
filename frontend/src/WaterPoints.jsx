@@ -3,27 +3,125 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { formatDate } from './App';
+import GlobeHero from './GlobeHero';
 import Map3DViewer from './Map3DViewer';
 import TableRowMenu, { TableRowMenuItem } from './TableRowMenu';
 
 import { API_BASE as API } from './apiConfig';
 
+const PAGE_SIZE = 10;
+
 const STATUS_FILTERS = [
-  { key: 'ALL', label: 'All points', dot: 'purple', hint: 'Full registry' },
-  { key: 'CLEAR', label: 'Clear', dot: 'green', hint: 'No active faults' },
-  { key: 'FAULTY', label: 'With faults', dot: 'amber', hint: 'Needs attention' },
-  { key: 'NO_GPS', label: 'No GPS', dot: 'red', hint: 'Missing coordinates' },
+  { key: 'ALL', statLabel: 'ALL POINTS', tone: 'purple', hint: 'Total registered' },
+  { key: 'CLEAR', statLabel: 'CLEAR', tone: 'green', hint: 'No active faults' },
+  { key: 'FAULTY', statLabel: 'WITH FAULTS', tone: 'amber', hint: 'Needs attention' },
+  { key: 'NO_GPS', statLabel: 'NO GPS', tone: 'red', hint: 'Missing coordinates' },
+];
+
+const STATUS_DROPDOWN = [
+  { value: 'ALL', label: 'All' },
+  { value: 'CLEAR', label: 'Clear' },
+  { value: 'FAULTY', label: 'With faults' },
+  { value: 'NO_GPS', label: 'No GPS' },
+];
+
+const FAULT_DROPDOWN = [
+  { value: 'ALL', label: 'All' },
+  { value: 'WITH_FAULTS', label: 'With faults' },
+  { value: 'NO_FAULTS', label: 'No faults' },
 ];
 
 function formatRelativeTime(date) {
   if (!date) return '—';
   const sec = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (sec < 10) return 'Just now';
+  if (sec < 10) return 'just now';
   if (sec < 60) return `${sec}s ago`;
   const min = Math.floor(sec / 60);
   if (min < 60) return `${min} min ago`;
   const hr = Math.floor(min / 60);
   return `${hr}h ago`;
+}
+
+const IconRefresh = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <polyline points="23 4 23 10 17 10" />
+    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+  </svg>
+);
+
+const IconDroplet = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.32 0z" />
+  </svg>
+);
+
+const IconLayers = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+    <polyline points="2 17 12 22 22 17" />
+    <polyline points="2 12 12 17 22 12" />
+  </svg>
+);
+
+const IconShield = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <polyline points="9 12 11 14 15 10" />
+  </svg>
+);
+
+const IconAlert = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+const IconPinOff = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+    <line x1="2" y1="2" x2="22" y2="22" />
+  </svg>
+);
+
+const IconSignal = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+    <circle cx="12" cy="20" r="1" fill="currentColor" />
+  </svg>
+);
+
+const STAT_ICONS = { purple: IconLayers, green: IconShield, amber: IconAlert, red: IconPinOff };
+
+const SPARKLINE_PATHS = {
+  purple: 'M0,14 L5,10 L10,12 L15,7 L20,9 L24,5',
+  green: 'M0,13 L6,9 L12,11 L18,6 L24,8',
+  amber: 'M0,12 L4,14 L9,10 L14,13 L19,8 L24,11',
+  red: 'M0,11 L5,13 L11,9 L16,12 L21,7 L24,10',
+};
+
+function Sparkline({ tone }) {
+  return (
+    <svg className={`wp-stat-sparkline wp-stat-sparkline--${tone}`} viewBox="0 0 24 16" preserveAspectRatio="none" aria-hidden>
+      <path d={SPARKLINE_PATHS[tone] || SPARKLINE_PATHS.purple} fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function UptimeRing({ pct }) {
+  const r = 14;
+  const c = 2 * Math.PI * r;
+  const offset = c - (pct / 100) * c;
+  return (
+    <svg className="wp-insight-ring" viewBox="0 0 36 36" aria-hidden>
+      <circle className="wp-insight-ring-track" cx="18" cy="18" r={r} />
+      <circle className="wp-insight-ring-fill" cx="18" cy="18" r={r} strokeDasharray={c} strokeDashoffset={offset} />
+      <text x="18" y="18.5" className="wp-insight-ring-text">{Math.round(pct)}%</text>
+    </svg>
+  );
 }
 
 const WaterPointAddModal = ({
@@ -202,6 +300,8 @@ const WaterPoints = () => {
   const [flyToCode, setFlyToCode] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [faultFilter, setFaultFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({ code: '', location: '', description: '', latitude: '', longitude: '' });
   const [formError, setFormError] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -264,6 +364,7 @@ const WaterPoints = () => {
 
   const applyFilter = (key) => {
     setStatusFilter(key);
+    setPage(1);
     const params = new URLSearchParams(location.search);
     if (key === 'ALL') params.delete('status');
     else params.set('status', key);
@@ -281,8 +382,40 @@ const WaterPoints = () => {
     if (statusFilter === 'CLEAR' && hasFault) return false;
     if (statusFilter === 'FAULTY' && !hasFault) return false;
     if (statusFilter === 'NO_GPS' && hasGps) return false;
+    if (faultFilter === 'WITH_FAULTS' && !hasFault) return false;
+    if (faultFilter === 'NO_FAULTS' && hasFault) return false;
     return true;
-  }), [waterPoints, searchQuery, statusFilter, faultCounts]);
+  }), [waterPoints, searchQuery, statusFilter, faultFilter, faultCounts]);
+
+  const totalFaults = useMemo(
+    () => Object.values(faultCounts).reduce((sum, n) => sum + n, 0),
+    [faultCounts],
+  );
+
+  const onlineCount = counts.CLEAR;
+  const uptimePct = waterPoints.length > 0 ? (onlineCount / waterPoints.length) * 100 : 100;
+  const allOperational = counts.FAULTY === 0;
+
+  const totalPages = Math.max(1, Math.ceil(filteredPoints.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const pagedPoints = filteredPoints.slice(pageStart, pageStart + PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, faultFilter]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const clearTableFilters = () => {
+    setSearchQuery('');
+    setFaultFilter('ALL');
+    applyFilter('ALL');
+  };
+
+  const hasActiveTableFilters = searchQuery || faultFilter !== 'ALL' || statusFilter !== 'ALL';
 
   const closeAddModal = () => {
     setShowForm(false);
@@ -335,86 +468,171 @@ const WaterPoints = () => {
   };
 
   return (
-    <div>
-      <div className="page-header">
+    <div className="water-points-page">
+      <header className="wp-page-header">
         <div>
-          <h2 className="page-title">Water Points</h2>
-          <p className="page-subtitle">
+          <h1 className="wp-page-title">Water Points</h1>
+          <p className="wp-page-subtitle">
             {waterPoints.length} registered
             {lastUpdated && (
               <>
-                {' '}
-                · Updated {formatRelativeTime(lastUpdated)}
+                {' · '}
+                Updated {formatRelativeTime(lastUpdated)}
               </>
             )}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button type="button" onClick={fetchData} className="btn-secondary btn-sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <div className="wp-page-actions">
+          <button type="button" onClick={fetchData} className="btn-secondary btn-sm wp-btn-refresh">
+            <IconRefresh />
             Refresh
           </button>
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="btn-primary"
-            style={{ marginTop: 0, padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-          >
-            + Add Water Point
+          <button type="button" onClick={() => setShowForm(true)} className="btn-primary wp-btn-add">
+            <span aria-hidden>+</span>
+            Add Water Point
           </button>
         </div>
+      </header>
+
+      {fetchError && <div className="alert alert-error wp-page-alert">API error: {fetchError}</div>}
+
+      <section className="wp-overview-card" aria-label="Water points overview">
+        <div className="wp-overview-copy">
+          <div className="wp-overview-icon" aria-hidden>
+            <IconDroplet />
+          </div>
+          <h2>Overview</h2>
+          <p>
+            Monitor all registered water points across Zimbabwe. Track status, detect faults,
+            and ensure reliable water access for every community.
+          </p>
+          <p className={`wp-overview-status${allOperational ? ' wp-overview-status--ok' : ''}`}>
+            <span className="wp-overview-status-dot" aria-hidden />
+            {allOperational ? 'All systems operational' : `${counts.FAULTY} point${counts.FAULTY === 1 ? '' : 's'} need attention`}
+          </p>
+        </div>
+        <div className="wp-overview-map">
+          <GlobeHero
+            waterPoints={waterPoints}
+            reports={reports}
+            onLocationSelected={handleLocationSelected}
+            selectedPos={selectedPos}
+            flyToCode={flyToCode}
+            loading={loading}
+            initialMode="map"
+            flatMap
+            showBackButton={false}
+          />
+        </div>
+        <aside className="wp-insights" aria-label="Quick insights">
+          <div className="wp-insight-row">
+            <span className="wp-insight-icon wp-insight-icon--blue" aria-hidden><IconDroplet /></span>
+            <div>
+              <strong>{waterPoints.length}</strong>
+              <span>Total water points</span>
+            </div>
+          </div>
+          <div className="wp-insight-row">
+            <span className="wp-insight-icon wp-insight-icon--amber" aria-hidden><IconAlert /></span>
+            <div>
+              <strong>{totalFaults}</strong>
+              <span>Faults detected</span>
+            </div>
+          </div>
+          <div className="wp-insight-row">
+            <span className="wp-insight-icon wp-insight-icon--green" aria-hidden><IconSignal /></span>
+            <div>
+              <strong>{onlineCount}</strong>
+              <span>Online &amp; operational</span>
+            </div>
+          </div>
+          <div className="wp-insight-row wp-insight-row--ring">
+            <UptimeRing pct={uptimePct} />
+            <div>
+              <strong>{Math.round(uptimePct)}%</strong>
+              <span>System uptime</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <div className="wp-stat-grid">
+        {STATUS_FILTERS.map((card) => {
+          const StatIcon = STAT_ICONS[card.tone];
+          return (
+            <button
+              key={card.key}
+              type="button"
+              className={`wp-stat-card wp-stat-card--${card.tone}${statusFilter === card.key ? ' active' : ''}`}
+              onClick={() => applyFilter(card.key)}
+              aria-pressed={statusFilter === card.key}
+            >
+              <span className={`wp-stat-icon wp-stat-icon--${card.tone}`} aria-hidden>
+                <StatIcon />
+              </span>
+              <div className="wp-stat-body">
+                <span className="wp-stat-label">{card.statLabel}</span>
+                <strong>{counts[card.key] ?? 0}</strong>
+                <small>{card.hint}</small>
+              </div>
+              <Sparkline tone={card.tone} />
+            </button>
+          );
+        })}
       </div>
 
-      {fetchError && <div className="alert alert-error" style={{ marginBottom: '1.5rem' }}>API error: {fetchError}</div>}
-
-
-      <div className="waterpoints-map-preview">
-        <Map3DViewer
-          waterPoints={waterPoints}
-          reports={reports}
-          onLocationSelected={handleLocationSelected}
-          selectedPos={selectedPos}
-          flyToCode={flyToCode}
-        />
-      </div>
-
-      <div className="reports-summary-cards">
-        {STATUS_FILTERS.map((card) => (
-          <button
-            key={card.key}
-            type="button"
-            className={`reports-filter-card ${statusFilter === card.key ? 'active' : ''}`}
-            onClick={() => applyFilter(card.key)}
-            aria-pressed={statusFilter === card.key}
-          >
-            <span className="reports-filter-card-head">
-              <span className={`dashboard-kpi-dot ${card.dot}`} aria-hidden />
-              {card.label}
-            </span>
-            <strong>{counts[card.key] ?? 0}</strong>
-            <small>{card.hint}</small>
-          </button>
-        ))}
-      </div>
-
-      <div className="glass-panel">
-        <div className="page-table-toolbar">
-          <div className="search-bar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <section className="wp-table-panel glass-panel">
+        <div className="wp-table-toolbar">
+          <div className="search-bar wp-table-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
             <input
               type="search"
-              placeholder="Search by code or location…"
+              placeholder="Search by code or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <label className="wp-filter-select">
+            <span>Status:</span>
+            <select value={statusFilter} onChange={(e) => applyFilter(e.target.value)}>
+              {STATUS_DROPDOWN.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="wp-filter-select">
+            <span>Faults:</span>
+            <select
+              value={faultFilter}
+              onChange={(e) => {
+                setFaultFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              {FAULT_DROPDOWN.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+          {hasActiveTableFilters && (
+            <button type="button" className="wp-clear-filters" onClick={clearTableFilters}>
+              <span aria-hidden>×</span>
+              Clear Filters
+            </button>
+          )}
         </div>
 
         {loading ? (
           <div className="loading">Loading water points…</div>
         ) : filteredPoints.length === 0 ? (
           <div className="empty-state">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: '1rem', opacity: 0.4 }} aria-hidden><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: '1rem', opacity: 0.4 }} aria-hidden>
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
             <p>
               {waterPoints.length === 0
                 ? 'No water points registered yet.'
@@ -423,7 +641,7 @@ const WaterPoints = () => {
           </div>
         ) : (
           <div className="table-wrapper">
-            <table className="data-table">
+            <table className="data-table wp-data-table">
               <thead>
                 <tr>
                   <th>#</th>
@@ -437,7 +655,7 @@ const WaterPoints = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredPoints.map((wp, i) => {
+                {pagedPoints.map((wp, i) => {
                   const faults = faultCounts[wp.code] || 0;
                   return (
                     <tr
@@ -446,17 +664,17 @@ const WaterPoints = () => {
                       onClick={() => setDetailPoint(wp)}
                       title="Click row for details"
                     >
-                      <td className="muted">{i + 1}</td>
+                      <td className="muted">{pageStart + i + 1}</td>
                       <td><strong>{wp.code}</strong></td>
                       <td>{wp.location}</td>
                       <td className="mono muted">
                         {wp.latitude && wp.longitude
                           ? `${wp.latitude}, ${wp.longitude}`
-                          : <span style={{ fontStyle: 'italic' }}>No coordinates</span>}
+                          : <span className="wp-no-coords">No coordinates</span>}
                       </td>
                       <td>
                         <span className={`status-badge ${faults > 0 ? 'wp-status-fault' : 'wp-status-clear'}`}>
-                          {faults > 0 ? `${faults} fault${faults > 1 ? 's' : ''}` : 'Clear'}
+                          {faults > 0 ? `${faults} FAULT${faults > 1 ? 'S' : ''}` : 'CLEAR'}
                         </span>
                       </td>
                       <td className="muted">{wp.description || '—'}</td>
@@ -510,13 +728,44 @@ const WaterPoints = () => {
           </div>
         )}
 
-        {!loading && (
-          <div className="page-table-footer">
-            Showing {filteredPoints.length} of {waterPoints.length} water point{waterPoints.length === 1 ? '' : 's'}
-            {searchQuery ? ` matching “${searchQuery}”` : ''}
-          </div>
+        {!loading && filteredPoints.length > 0 && (
+          <footer className="wp-table-footer">
+            <span>
+              Showing {pageStart + 1} to {Math.min(pageStart + PAGE_SIZE, filteredPoints.length)} of{' '}
+              {filteredPoints.length} water point{filteredPoints.length === 1 ? '' : 's'}
+            </span>
+            <nav className="wp-pagination" aria-label="Table pagination">
+              <button
+                type="button"
+                className="wp-page-btn"
+                disabled={safePage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={`wp-page-btn wp-page-num${n === safePage ? ' active' : ''}`}
+                  onClick={() => setPage(n)}
+                  aria-current={n === safePage ? 'page' : undefined}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="wp-page-btn"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </button>
+            </nav>
+          </footer>
         )}
-      </div>
+      </section>
 
       {showForm && (
         <WaterPointAddModal

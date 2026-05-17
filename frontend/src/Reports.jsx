@@ -18,13 +18,70 @@ const FILTER_CARDS = [
   { key: 'ALL', label: 'All reports', dot: 'purple', hint: 'Full queue' },
   { key: 'PENDING', label: 'Pending', dot: 'amber', hint: 'Awaiting assignment' },
   { key: 'IN_PROGRESS', label: 'In progress', dot: 'blue', hint: 'Technician assigned' },
-  { key: 'RESOLVED', label: 'Resolved', dot: 'green', hint: 'Closed tickets' },
+  { key: 'RESOLVED', label: 'Resolved', dot: 'green', hint: 'Closed faults' },
 ];
 
 const mapsDirUrl = (lat, lng) =>
   `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving`;
 
-const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign, onResolve, resolving }) => {
+const CloseFaultModal = ({ report, onClose, onConfirm, submitting, error }) => {
+  const [notes, setNotes] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onConfirm(notes);
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480, width: '92%' }}>
+        <div className="modal-header">
+          <div>
+            <h3>Close fault</h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4 }}>
+              Ticket {report.ticket_number} · {report.water_point_code}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="modal-close">✕</button>
+        </div>
+        {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
+            Closure notes (required)
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Describe what was fixed on site…"
+            rows={4}
+            required
+            minLength={3}
+            maxLength={500}
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '0.65rem 0.75rem',
+              borderRadius: 10,
+              border: '1px solid var(--border)',
+              fontSize: '0.88rem',
+              resize: 'vertical',
+            }}
+          />
+          <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', flexWrap: 'wrap' }}>
+            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary" disabled={submitting || notes.trim().length < 3}>
+              {submitting ? 'Closing…' : 'Close fault'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign, onCloseFault, resolving }) => {
   const [full, setFull] = useState(report);
   const [loadErr, setLoadErr] = useState(null);
 
@@ -111,6 +168,25 @@ const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign, on
               <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Unassigned</span>
             )}
           </div>
+          {full.status === 'RESOLVED' && (
+            <>
+              <div>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Closed</div>
+                <p>{full.resolved_at ? formatDate(full.resolved_at) : '—'}</p>
+                {(full.closed_by_staff_username || full.closed_by_technician_name) && (
+                  <div className="muted" style={{ fontSize: '0.82rem', marginTop: 4 }}>
+                    by {full.closed_by_staff_username || full.closed_by_technician_name}
+                  </div>
+                )}
+              </div>
+              {full.closure_notes && (
+                <div>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Closure notes</div>
+                  <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{full.closure_notes}</div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginTop: '1.25rem', flexWrap: 'wrap' }}>
@@ -129,9 +205,9 @@ const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign, on
                 type="button"
                 className="btn-secondary"
                 disabled={resolving}
-                onClick={() => onResolve(full)}
+                onClick={() => onCloseFault(full)}
               >
-                {resolving ? 'Closing…' : 'Mark resolved'}
+                Close fault…
               </button>
             </>
           )}
@@ -317,6 +393,8 @@ const Reports = () => {
   const [assigningReport, setAssigningReport] = useState(null);
   const [detailReport, setDetailReport] = useState(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  const [closingReport, setClosingReport] = useState(null);
+  const [closeError, setCloseError] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const reopenDetailAfterAssign = useRef(false);
   const { user } = useAuth();
@@ -366,21 +444,29 @@ const Reports = () => {
     navigate({ pathname: '/reports', search: q ? `?${q}` : '' }, { replace: true });
   };
 
-  const markResolved = async (report) => {
+  const closeFault = async (report, closureNotes) => {
     setStatusUpdatingId(report.id);
+    setCloseError(null);
     try {
       const res = await axios.post(
         `${API}/api/reports/${report.id}/status/`,
-        { status: 'RESOLVED' },
+        { status: 'RESOLVED', closure_notes: closureNotes.trim() },
         { headers: authHeader() },
       );
       handleAssigned(res.data);
+      setClosingReport(null);
+      setDetailReport((prev) => (prev?.id === report.id ? null : prev));
     } catch (err) {
-      const msg = err.response?.data?.error || err.message || 'Could not update status';
-      setFetchError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      const msg = err.response?.data?.error || err.message || 'Could not close fault';
+      setCloseError(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setStatusUpdatingId(null);
     }
+  };
+
+  const openCloseModal = (report) => {
+    setCloseError(null);
+    setClosingReport(report);
   };
 
   const handleRowClick = (report) => {
@@ -501,10 +587,10 @@ const Reports = () => {
                               disabled={statusUpdatingId === r.id}
                               onClick={() => {
                                 setOpenMenuId(null);
-                                markResolved(r);
+                                openCloseModal(r);
                               }}
                             >
-                              {statusUpdatingId === r.id ? 'Resolving…' : 'Mark resolved'}
+                              Close fault…
                             </TableRowMenuItem>
                           </>
                         )}
@@ -529,8 +615,21 @@ const Reports = () => {
             setDetailReport(null);
             setAssigningReport(r);
           }}
-          onResolve={markResolved}
+          onCloseFault={openCloseModal}
           resolving={statusUpdatingId === detailReport.id}
+        />
+      )}
+
+      {closingReport && (
+        <CloseFaultModal
+          report={closingReport}
+          onClose={() => {
+            setClosingReport(null);
+            setCloseError(null);
+          }}
+          onConfirm={(notes) => closeFault(closingReport, notes)}
+          submitting={statusUpdatingId === closingReport.id}
+          error={closeError}
         />
       )}
 

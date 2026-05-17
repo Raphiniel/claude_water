@@ -107,6 +107,7 @@ class _FieldPortalTabState extends State<FieldPortalTab> with WidgetsBindingObse
   List<FieldJob> _jobs = [];
   String? _error;
   bool _loading = false;
+  int? _closingJobId;
   Position? _lastPosition;
   StreamSubscription<Position>? _posSub;
   DateTime? _lastPostAt;
@@ -173,6 +174,90 @@ class _FieldPortalTabState extends State<FieldPortalTab> with WidgetsBindingObse
       return manual.replaceAll(RegExp(r'/+$'), '');
     }
     return resolveApiOrigin(p);
+  }
+
+  Future<void> _showCloseDialog(FieldJob job) async {
+    final notesCtrl = TextEditingController();
+    final notes = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text('Close ${job.ticketNumber}'),
+          content: TextField(
+            controller: notesCtrl,
+            maxLines: 4,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Closure notes (required)',
+              hintText: 'Describe what was fixed on site…',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final n = notesCtrl.text.trim();
+                if (n.length < 3) return;
+                Navigator.pop(ctx, n);
+              },
+              child: const Text('Close fault'),
+            ),
+          ],
+        );
+      },
+    );
+    notesCtrl.dispose();
+    if (notes == null || !mounted) return;
+    await _closeJob(job, notes);
+  }
+
+  Future<void> _closeJob(FieldJob job, String notes) async {
+    final token = _tokenCtrl.text.trim();
+    final origin = await _requireApiOrigin();
+    if (token.isEmpty || origin == null || origin.isEmpty) {
+      setState(() => _error = 'Token and server URL are required to close a fault.');
+      return;
+    }
+
+    setState(() {
+      _closingJobId = job.id;
+      _error = null;
+    });
+
+    final uri = Uri.parse('$origin/api/field/jobs/${job.id}/close/');
+    try {
+      final res = await http
+          .post(
+            uri,
+            headers: const {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'token': token, 'closure_notes': notes}),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        await _fetchJobs();
+        return;
+      }
+      String msg = 'Could not close fault (HTTP ${res.statusCode}).';
+      try {
+        final body = jsonDecode(res.body);
+        if (body is Map && body['error'] != null) {
+          msg = '${body['error']}';
+        }
+      } catch (_) {}
+      setState(() => _error = msg);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = 'Network error while closing fault: $e');
+    } finally {
+      if (mounted) setState(() => _closingJobId = null);
+    }
   }
 
   Future<void> _fetchJobs() async {
@@ -523,6 +608,25 @@ class _FieldPortalTabState extends State<FieldPortalTab> with WidgetsBindingObse
                       icon: const Icon(Icons.turn_right_rounded),
                       label: const Text('Navigate in Google Maps'),
                       style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(44),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _closingJobId == j.id
+                          ? null
+                          : () => _showCloseDialog(j),
+                      icon: _closingJobId == j.id
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.check_circle_outline),
+                      label: Text(
+                        _closingJobId == j.id ? 'Closing…' : 'Close fault',
+                      ),
+                      style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(44),
                       ),
                     ),

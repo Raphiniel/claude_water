@@ -465,11 +465,15 @@ class _GatewayHomePageState extends State<GatewayHomePage>
                   : 'Field technician',
             ),
             Text(
-              staff
-                  ? (_mainTab == 0 ? 'SMS gateway' : 'Jobs & Google Maps routing')
-                  : 'Signed in as ${widget.session.username}',
+              widget.session.isOffline
+                  ? 'Offline — ${widget.session.username} (sync when online)'
+                  : staff
+                      ? (_mainTab == 0 ? 'SMS gateway' : 'Jobs & Google Maps routing')
+                      : 'Signed in as ${widget.session.username}',
               style: textTheme.labelMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
+                color: widget.session.isOffline
+                    ? scheme.tertiary
+                    : scheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
             ),

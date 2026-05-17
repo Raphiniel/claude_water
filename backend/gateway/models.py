@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 
@@ -49,6 +50,22 @@ class FaultReport(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     assigned_to = models.ForeignKey(Technician, null=True, blank=True, on_delete=models.SET_NULL, related_name='assignments')
     created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    closure_notes = models.TextField(blank=True, default='')
+    closed_by_staff = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='closed_fault_reports',
+    )
+    closed_by_technician = models.ForeignKey(
+        Technician,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='closed_fault_reports',
+    )
 
     def __str__(self):
         return f"Ticket {self.ticket_number} - {self.fault_code}"

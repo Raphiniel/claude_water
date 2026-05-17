@@ -18,6 +18,14 @@ const IconAnalytics = () => <svg width="18" height="18" viewBox="0 0 24 24" fill
 const IconHelp = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
 const IconUsers = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
 const IconMap = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><map name="map"></map><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>;
+const IconPanelLeft = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M9 3v18" />
+  </svg>
+);
+
+const SIDEBAR_COLLAPSED_KEY = 'waterwise-sidebar-collapsed';
 
 const FAULT_LABELS = {
   PUMP: 'Pump Failure',
@@ -78,7 +86,26 @@ const Layout = ({ children }) => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const searchRef = useRef(null);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
 
   const searchItems = [
     { name: 'Dashboard overview', path: '/' },
@@ -159,16 +186,36 @@ const Layout = ({ children }) => {
 
   return (
     <div className="app-layout">
-      <aside className="sidebar">
+      <aside className={`sidebar${sidebarCollapsed ? ' sidebar--collapsed' : ''}`}>
         <div className="sidebar-brand">
-          <img
-            className="sidebar-brand-wordmark"
-            src="/logo-wordmark.svg"
-            alt="WaterWise"
-            width={132}
-            height={26}
-            decoding="async"
-          />
+          <div className="sidebar-brand-logos">
+            <img
+              className="sidebar-brand-wordmark"
+              src="/logo-wordmark.svg"
+              alt="WaterWise"
+              width={132}
+              height={26}
+              decoding="async"
+            />
+            <img
+              className="sidebar-brand-mark"
+              src="/logo-mark.svg"
+              alt="WaterWise"
+              width={32}
+              height={32}
+              decoding="async"
+            />
+          </div>
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={toggleSidebar}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!sidebarCollapsed}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <IconPanelLeft />
+          </button>
         </div>
 
         <div className="sidebar-scroll">
@@ -179,16 +226,17 @@ const Layout = ({ children }) => {
                 key={to}
                 to={to}
                 end={end}
+                title={sidebarCollapsed ? label : undefined}
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
-                {icon}
-                {label}
+                <span className="nav-link-icon">{icon}</span>
+                <span className="sidebar-nav-label">{label}</span>
               </NavLink>
             ))}
           </nav>
 
-          <div style={{ padding: '1rem' }}>
-            <p className="nav-section-label" style={{ marginBottom: '0.75rem' }}>SYSTEM</p>
+          <div className="sidebar-system-wrap">
+            <p className="nav-section-label">SYSTEM</p>
             <div className="sidebar-system-card">
               <h4 style={{ fontSize: '0.8rem', color: '#fff', marginBottom: '0.25rem' }}>System Status</h4>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
@@ -207,6 +255,7 @@ const Layout = ({ children }) => {
               target="_blank"
               rel="noopener noreferrer"
               className="nav-link sidebar-docs-link"
+              title={sidebarCollapsed ? 'Need help? View documentation' : undefined}
               style={{ marginBottom: '0.5rem', textAlign: 'left' }}
             >
               <div
@@ -226,7 +275,7 @@ const Layout = ({ children }) => {
               >
                 <IconHelp />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
+              <div className="sidebar-collapsible-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
                 <span style={{ color: '#a3e635', fontWeight: 600 }}>Need help?</span>
                 <span className="sidebar-docs-sub" style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
                   View documentation
@@ -236,6 +285,7 @@ const Layout = ({ children }) => {
           ) : (
             <NavLink
               to="/help"
+              title={sidebarCollapsed ? 'Need help? View documentation' : undefined}
               className={() => 'nav-link sidebar-docs-link'}
               style={{ marginBottom: '0.5rem', textAlign: 'left' }}
             >
@@ -256,7 +306,7 @@ const Layout = ({ children }) => {
               >
                 <IconHelp />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
+              <div className="sidebar-collapsible-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
                 <span style={{ color: '#a3e635', fontWeight: 600 }}>Need help?</span>
                 <span className="sidebar-docs-sub" style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
                   View documentation
@@ -265,9 +315,15 @@ const Layout = ({ children }) => {
             </NavLink>
           )}
           
-          <button onClick={logout} className="nav-link logout-btn" style={{ paddingLeft: '1.5rem', color: '#888' }}>
-            <IconLogout />
-            Logout
+          <button
+            type="button"
+            onClick={logout}
+            className="nav-link logout-btn"
+            title={sidebarCollapsed ? 'Logout' : undefined}
+            style={{ color: '#888' }}
+          >
+            <span className="nav-link-icon"><IconLogout /></span>
+            <span className="sidebar-nav-label">Logout</span>
           </button>
         </div>
       </aside>
