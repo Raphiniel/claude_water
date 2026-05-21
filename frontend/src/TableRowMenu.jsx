@@ -1,13 +1,7 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-
-const IconDots = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-    <circle cx="12" cy="5" r="2" />
-    <circle cx="12" cy="12" r="2" />
-    <circle cx="12" cy="19" r="2" />
-  </svg>
-);
+import { MoreVertical } from 'lucide-react';
+import { Icon } from './components/ui/icon';
 
 export function TableRowMenuItem({ onClick, children, danger = false, disabled = false }) {
   return (
@@ -70,7 +64,7 @@ export default function TableRowMenu({ isOpen, onToggle, onClose, children }) {
         aria-label="More options"
         title="More options"
       >
-        <IconDots />
+        <Icon icon={MoreVertical} size="sm" />
       </button>
       {isOpen &&
         anchor &&

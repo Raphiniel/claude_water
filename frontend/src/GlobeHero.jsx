@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate } from 'react-router-dom';
+import { LoadingOverlay } from './components/ui/loader';
 import StylizedGlobe from './StylizedGlobe';
 
 const GLOBE_CENTER = [0, 12];
@@ -136,7 +137,7 @@ const hudBtn = {
   padding: '3px 10px',
   borderRadius: 16,
   fontSize: 11,
-  fontWeight: 700,
+  fontWeight: 400,
   cursor: 'pointer',
 };
 
@@ -502,7 +503,7 @@ const GlobeHero = ({
         lbl.textContent = FAULT_LABELS[fault.fault_code] || fault.fault_code;
         lbl.style.cssText = `background:${color};color:white;font-size:10px;font-weight:700;
           padding:2px 6px;border-radius:4px;white-space:nowrap;margin-bottom:3px;
-          box-shadow:0 2px 8px rgba(0,0,0,.55);font-family:sans-serif;
+          box-shadow:0 2px 8px rgba(0,0,0,.55);font-family:var(--font-body);
           letter-spacing:.03em;animation:pulse-label 2s infinite;`;
         el.appendChild(lbl);
       }
@@ -597,6 +598,7 @@ const GlobeHero = ({
       ].filter(Boolean).join(' ')}
       style={{ position: 'relative', width: '100%', height: '100%' }}
     >
+      {loading && <LoadingOverlay label="Loading map…" />}
       <style>{`
         @keyframes pulse-label {
           0%,100% { opacity:1; transform:translateY(0); }
@@ -778,7 +780,9 @@ const GlobeHero = ({
         .space-bg {
           position: absolute;
           inset: 0;
-          background: #020406;
+          background-color: var(--bg-color, #080808);
+          background-image: var(--app-shell-bg-image);
+          background-attachment: fixed;
           overflow: hidden;
           z-index: 0;
         }
@@ -817,7 +821,7 @@ const GlobeHero = ({
         background: liveMapGlobeView
           ? 'transparent'
           : liveMapLayout
-            ? (showStylizedGlobe ? 'var(--live-60, #3d4f66)' : 'var(--live-60-deep, #35465c)')
+            ? 'transparent'
             : (showStylizedGlobe ? '#000000' : '#020406'),
       }}>
         

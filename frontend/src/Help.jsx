@@ -1,12 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { API_BASE, DOCS_URL } from './apiConfig';
 
 const sections = [
   {
     title: 'Dashboard',
     path: '/',
-    body: 'Overview KPIs, recent fault reports, the live infrastructure map, and quick actions. Click stat cards to drill into water points or tickets by status.',
+    body: 'Overview KPIs, recent fault reports, the infrastructure map, and quick actions. Click stat cards to drill into water points or tickets by status.',
   },
   {
     title: 'Live Map',
@@ -26,62 +25,41 @@ const sections = [
   {
     title: 'Technicians',
     path: '/technicians',
-    body: 'Field staff records and assignment context (extend as your workflow grows).',
+    body: 'Field staff records, availability, and assignment context.',
   },
   {
     title: 'SMS Alerts',
     path: '/sms',
-    body: 'Broadcast messages and gateway-related tools when integrated with the mobile SMS relay.',
+    body: 'Broadcast messages and tools for the mobile SMS relay when integrated.',
   },
   {
     title: 'Analytics',
     path: '/analytics',
-    body: 'Trends and operational metrics derived from reports and infrastructure data.',
+    body: 'Trends, fault mix, resolution rate, and infrastructure coverage.',
   },
   {
     title: 'Settings',
     path: '/settings',
-    body: 'System mode, password change, and other administrator controls.',
+    body: 'Your account, organization options, operational mode, SMS behaviour, and integrations (staff).',
   },
 ];
 
 const Help = () => (
   <div>
     <div style={{ marginBottom: '2rem' }}>
-      <h2>Documentation</h2>
+      <h2 className="page-title">Help</h2>
       <p style={{ color: 'var(--text-muted)', maxWidth: '42rem' }}>
-        Quick reference for the Waterwise admin portal. Use the sidebar or the links below to jump to each area.
+        Quick guide to the WaterWise admin portal. Use the sidebar or the links below to open each area.
       </p>
     </div>
 
     <section className="glass-panel" style={{ marginBottom: '1.5rem' }}>
-      <h3>AI chat in your editor feels slow?</h3>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-        Assistants such as Cursor chat are run by the editor vendor and model you pick — not this WaterWise app.
-        For snappier replies, try a faster model tier, a shorter context (fewer open huge files), and a stable network.
+      <h3>Getting started</h3>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0, lineHeight: 1.5 }}>
+        Sign in with the credentials provided by your administrator. For SMS relay setup, user
+        management, or integration questions, open <Link to="/settings">Settings</Link> or{' '}
+        <Link to="/users">User accounts</Link> (staff only).
       </p>
-    </section>
-
-    <section className="glass-panel" style={{ marginBottom: '1.5rem' }}>
-      <h3>Configuration</h3>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-        This browser app talks to the API at <code style={{ color: 'var(--primary)' }}>{API_BASE}</code>.
-        Override with <code>VITE_API_BASE_URL</code> when building or in a <code>.env</code> file for local development.
-      </p>
-      {DOCS_URL ? (
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
-          External docs are set to{' '}
-          <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
-            {DOCS_URL}
-          </a>
-          .
-        </p>
-      ) : (
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
-          To open an external wiki or handbook from the sidebar instead of this page, set{' '}
-          <code>VITE_DOCS_URL</code> to a full <code>https://…</code> URL and rebuild.
-        </p>
-      )}
     </section>
 
     <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>

@@ -5,6 +5,9 @@ import { useAuth } from './AuthContext';
 import { formatDate } from './App';
 import TableRowMenu, { TableRowMenuItem } from './TableRowMenu';
 import { API_BASE as API } from './apiConfig';
+import { ChevronDown, Search } from 'lucide-react';
+import { Icon } from './components/ui/icon';
+import { Loader } from './components/ui/loader';
 
 const FAULT_LABELS = {
   PUMP: 'Pump Failure',
@@ -301,10 +304,7 @@ const Sms = () => {
 
         <div className="page-table-toolbar">
           <div className="search-bar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <Icon icon={Search} size="md" />
             <input
               type="search"
               placeholder="Search inbound…"
@@ -315,7 +315,7 @@ const Sms = () => {
         </div>
 
         {loading ? (
-          <div className="loading">Loading…</div>
+          <Loader variant="section" label="Loading messages…" />
         ) : filteredInbound.length === 0 ? (
           <div className="empty-state">
             <p>{inbound.length === 0 ? 'No inbound SMS yet.' : 'No matches.'}</p>
@@ -403,18 +403,11 @@ const Sms = () => {
           aria-expanded={showOutbound}
         >
           <span>Recent sends ({sentLog.length})</span>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
+          <Icon
+            icon={ChevronDown}
+            size="sm"
             style={{ transform: showOutbound ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
-            aria-hidden
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+          />
         </button>
 
         {showOutbound && (

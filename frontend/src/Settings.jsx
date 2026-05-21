@@ -1,26 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import {
+  Building2,
+  KeyRound,
+  MessageSquare,
+  Plug,
+  Shield,
+  SlidersHorizontal,
+  Users,
+} from 'lucide-react';
 import { useAuth } from './AuthContext';
-import { API_BASE } from './apiConfig';
+import { getPublicApiLabel, getSmsWebhookUrl } from './apiConfig';
+import { Icon } from './components/ui/icon';
+import { getModeMeta, SYSTEM_MODES } from './systemMode';
+import { PageLoader } from './components/ui/loader';
 
-const MODES = [
-  {
-    key: 'NORMAL',
-    label: 'Normal',
-    hint: 'Standard operations and reporting.',
-  },
-  {
-    key: 'EMERGENCY',
-    label: 'Emergency',
-    hint: 'Prioritize urgent faults and alerts.',
-  },
-  {
-    key: 'MAINTENANCE',
-    label: 'Maintenance',
-    hint: 'Planned work; reduce auto-assignments.',
-  },
-];
+const SIDEBAR_COLLAPSED_KEY = 'waterwise-sidebar-collapsed';
+
+const ROLE_LABELS = {
+  superuser: 'Superuser',
+  admin: 'Admin',
+  community_leader: 'Community leader',
+  technician: 'Technician',
+};
 
 const DEFAULT_SETTINGS = {
   mode: 'NORMAL',
@@ -29,6 +32,19 @@ const DEFAULT_SETTINGS = {
   send_confirmation_sms: true,
   sms_gateway_configured: false,
   sms_provider_configured: false,
+  last_updated: null,
+};
+
+const formatWhen = (iso) => {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+  } catch {
+    return '—';
+  }
 };
 
 const Settings = () => {
@@ -36,6 +52,13 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -43,6 +66,9 @@ const Settings = () => {
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   const { user, logout } = useAuth();
+  const isStaff = !!user?.is_staff;
+  const canConfigureGateway = !!user?.can_configure_sms_gateway;
+  const modeMeta = getModeMeta(settings.mode);
 
   const authHeader = useCallback(
     () => ({ Authorization: `Bearer ${user.token}` }),
@@ -60,7 +86,7 @@ const Settings = () => {
       setSettings({ ...DEFAULT_SETTINGS, ...res.data });
     } catch (err) {
       console.error('Failed to fetch settings', err);
-      setMessage({ type: 'error', text: 'Could not load settings.' });
+      setMessage({ type: 'error', text: 'Could not load system settings.' });
     } finally {
       setLoading(false);
     }
@@ -71,14 +97,20 @@ const Settings = () => {
   }, [loadSettings]);
 
   const saveSettings = async (patch) => {
+    if (!isStaff) return;
     setSaving(true);
     setMessage({ type: '', text: '' });
     try {
       const res = await axios.post(`${API_BASE}/api/settings/`, patch, { headers: authHeader() });
       setSettings({ ...DEFAULT_SETTINGS, ...res.data });
       setMessage({ type: 'success', text: 'Settings saved.' });
-    } catch {
-      setMessage({ type: 'error', text: 'Failed to save settings.' });
+      window.dispatchEvent(new CustomEvent('waterwise-settings-updated', { detail: res.data }));
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      setMessage({
+        type: 'error',
+        text: detail || 'Failed to save settings. Staff access may be required.',
+      });
     } finally {
       setSaving(false);
     }
@@ -96,6 +128,18 @@ const Settings = () => {
       auto_assign_nearest: settings.auto_assign_nearest,
       send_confirmation_sms: settings.send_confirmation_sms,
     });
+  };
+
+  const handleSidebarPref = (collapsed) => {
+    setSidebarCollapsed(collapsed);
+    try {
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+    } catch {
+      /* ignore */
+    }
+    window.dispatchEvent(
+      new CustomEvent('waterwise-sidebar-pref', { detail: { collapsed } })
+    );
   };
 
   const handlePasswordChange = async (e) => {
@@ -122,8 +166,17 @@ const Settings = () => {
     }
   };
 
+  const copyText = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setMessage({ type: 'success', text: 'Copied to clipboard.' });
+    } catch {
+      setMessage({ type: 'error', text: 'Could not copy — select and copy manually.' });
+    }
+  };
+
   if (loading) {
-    return <div className="loading">Loading settings…</div>;
+    return <PageLoader label="Loading settings…" />;
   }
 
   return (
@@ -131,8 +184,17 @@ const Settings = () => {
       <div className="page-header">
         <div>
           <h2 className="page-title">Settings</h2>
-          <p className="page-subtitle">System behaviour, SMS, and your account</p>
+          <p className="page-subtitle">
+            {isStaff
+              ? `Manage ${settings.organization_name || 'WaterWise'}, SMS behaviour, and your account`
+              : 'Your account and portal preferences'}
+          </p>
         </div>
+        {isStaff && settings.last_updated && (
+          <p className="settings-last-saved muted">
+            System settings saved {formatWhen(settings.last_updated)}
+          </p>
+        )}
       </div>
 
       {message.text && (
@@ -144,108 +206,72 @@ const Settings = () => {
         </div>
       )}
 
-      <div className="settings-sections">
-        <section className="glass-panel settings-section">
-          <h3 className="settings-section-title">System mode</h3>
-          <p className="settings-section-desc">Operational state shown across the portal.</p>
-          <div className="settings-mode-grid">
-            {MODES.map((m) => (
-              <button
-                key={m.key}
-                type="button"
-                className={`settings-mode-btn ${settings.mode === m.key ? 'active' : ''}`}
-                onClick={() => handleModeChange(m.key)}
-                disabled={saving}
-              >
-                <span className="settings-mode-label">{m.label}</span>
-                <span className="settings-mode-hint">{m.hint}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="glass-panel settings-section">
-          <h3 className="settings-section-title">General</h3>
-          <form onSubmit={handleGeneralSave} className="settings-form">
-            <div className="form-group">
-              <label htmlFor="org-name">Organization name</label>
-              <input
-                id="org-name"
-                value={settings.organization_name || ''}
-                onChange={(e) =>
-                  setSettings((s) => ({ ...s, organization_name: e.target.value }))
-                }
-                placeholder="WaterWise"
-              />
+      <div className="settings-layout">
+        <section id="profile" className="glass-panel settings-section">
+          <div className="settings-section-head">
+            <Icon icon={Shield} size="lg" className="settings-section-icon" />
+            <div>
+              <h3 className="settings-section-title">Your account</h3>
+              <p className="settings-section-desc">Signed-in user on this portal (from the API).</p>
             </div>
-
-            <label className="settings-toggle">
-              <input
-                type="checkbox"
-                checked={!!settings.auto_assign_nearest}
-                onChange={(e) =>
-                  setSettings((s) => ({ ...s, auto_assign_nearest: e.target.checked }))
-                }
-              />
-              <span>
-                <strong>Auto-assign nearest technician</strong>
-                <small>When a valid SMS report arrives, assign the closest available tech.</small>
-              </span>
-            </label>
-
-            <label className="settings-toggle">
-              <input
-                type="checkbox"
-                checked={!!settings.send_confirmation_sms}
-                onChange={(e) =>
-                  setSettings((s) => ({ ...s, send_confirmation_sms: e.target.checked }))
-                }
-              />
-              <span>
-                <strong>Confirmation SMS to reporters</strong>
-                <small>Send Africa&apos;s Talking reply after a successful fault report.</small>
-              </span>
-            </label>
-
-            <button type="submit" className="btn-primary" disabled={saving} style={{ marginTop: 0 }}>
-              {saving ? 'Saving…' : 'Save general settings'}
-            </button>
-          </form>
+          </div>
+          <dl className="settings-profile-grid">
+            <div>
+              <dt>Username</dt>
+              <dd>{user?.username || '—'}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{user?.email || '—'}</dd>
+            </div>
+            <div>
+              <dt>Role</dt>
+              <dd>
+                <span className="settings-role-pill">
+                  {ROLE_LABELS[user?.role] || user?.role || '—'}
+                </span>
+              </dd>
+            </div>
+            {canConfigureGateway && (
+              <div>
+                <dt>SMS relay handset</dt>
+                <dd className="settings-ok">Can configure APK</dd>
+              </div>
+            )}
+          </dl>
         </section>
 
-        <section className="glass-panel settings-section">
-          <h3 className="settings-section-title">Integrations</h3>
-          <p className="settings-section-desc">Server configuration (read-only).</p>
-          <ul className="settings-info-list">
-            <li>
-              <span>API URL</span>
-              <code className="mono">{API_BASE}</code>
-            </li>
-            <li>
-              <span>SMS gateway (APK)</span>
-              <span className={settings.sms_gateway_configured ? 'settings-ok' : 'settings-warn'}>
-                {settings.sms_gateway_configured ? 'Configured' : 'Not set on server'}
-              </span>
-            </li>
-            <li>
-              <span>SMS provider (Africa&apos;s Talking)</span>
-              <span className={settings.sms_provider_configured ? 'settings-ok' : 'settings-warn'}>
-                {settings.sms_provider_configured ? 'Configured' : 'Not set on server'}
-              </span>
-            </li>
-            <li>
-              <span>Inbound webhook</span>
-              <code className="mono">{`${API_BASE}/api/sms/incoming/`}</code>
-            </li>
-          </ul>
-          <p className="settings-section-desc" style={{ marginTop: '0.75rem' }}>
-            Configure the mobile SMS relay app with the webhook URL and shared secret from your server
-            environment.
-          </p>
+        <section id="appearance" className="glass-panel settings-section">
+          <div className="settings-section-head">
+            <Icon icon={SlidersHorizontal} size="lg" className="settings-section-icon" />
+            <div>
+              <h3 className="settings-section-title">Appearance</h3>
+              <p className="settings-section-desc">Preferences saved in this browser only.</p>
+            </div>
+          </div>
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={sidebarCollapsed}
+              onChange={(e) => handleSidebarPref(e.target.checked)}
+            />
+            <span>
+              <strong>Collapsed sidebar</strong>
+              <small>Start with the navigation rail minimized (applies immediately).</small>
+            </span>
+          </label>
         </section>
 
-        <section className="glass-panel settings-section">
-          <h3 className="settings-section-title">Account</h3>
+        <section id="password" className="glass-panel settings-section">
+          <div className="settings-section-head">
+            <Icon icon={KeyRound} size="lg" className="settings-section-icon" />
+            <div>
+              <h3 className="settings-section-title">Password</h3>
+              <p className="settings-section-desc">
+                You will be signed out after a successful change.
+              </p>
+            </div>
+          </div>
           <form onSubmit={handlePasswordChange} className="settings-form">
             <div className="form-group">
               <label htmlFor="old-pw">Current password</label>
@@ -267,6 +293,7 @@ const Settings = () => {
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
                 required
+                minLength={8}
               />
             </div>
             <div className="form-group">
@@ -278,19 +305,208 @@ const Settings = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"
                 required
+                minLength={8}
               />
             </div>
             <button type="submit" className="btn-secondary" disabled={passwordLoading}>
               {passwordLoading ? 'Updating…' : 'Change password'}
             </button>
           </form>
-
-          {user?.is_staff && (
-            <Link to="/users" className="btn-secondary btn-sm" style={{ marginTop: '1rem', textDecoration: 'none' }}>
-              Manage user accounts
-            </Link>
-          )}
         </section>
+
+        {isStaff && (
+          <>
+            <section id="organization" className="glass-panel settings-section">
+              <div className="settings-section-head">
+                <Icon icon={Building2} size="lg" className="settings-section-icon" />
+                <div>
+                  <h3 className="settings-section-title">Organization</h3>
+                  <p className="settings-section-desc">
+                    Display name used in this portal and shown in the sidebar status card.
+                  </p>
+                </div>
+              </div>
+              <form onSubmit={handleGeneralSave} className="settings-form">
+                <div className="form-group">
+                  <label htmlFor="org-name">Organization name</label>
+                  <input
+                    id="org-name"
+                    value={settings.organization_name || ''}
+                    onChange={(e) =>
+                      setSettings((s) => ({ ...s, organization_name: e.target.value }))
+                    }
+                    placeholder="WaterWise"
+                  />
+                </div>
+                <button type="submit" className="btn-primary" disabled={saving}>
+                  {saving ? 'Saving…' : 'Save organization name'}
+                </button>
+              </form>
+            </section>
+
+            <section id="operations" className="glass-panel settings-section">
+              <div className="settings-section-head">
+                <Icon icon={Shield} size="lg" className="settings-section-icon" />
+                <div>
+                  <h3 className="settings-section-title">Operational mode</h3>
+                  <p className="settings-section-desc">
+                    Currently <strong>{modeMeta.statusLabel}</strong> — {modeMeta.statusDetail}
+                  </p>
+                </div>
+              </div>
+              <div className="settings-mode-grid">
+                {Object.values(SYSTEM_MODES).map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    className={`settings-mode-btn ${settings.mode === m.key ? 'active' : ''}`}
+                    onClick={() => handleModeChange(m.key)}
+                    disabled={saving}
+                  >
+                    <span className="settings-mode-label">{m.label}</span>
+                    <span className="settings-mode-hint">{m.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section id="sms" className="glass-panel settings-section">
+              <div className="settings-section-head">
+                <Icon icon={MessageSquare} size="lg" className="settings-section-icon" />
+                <div>
+                  <h3 className="settings-section-title">SMS &amp; fault handling</h3>
+                  <p className="settings-section-desc">
+                    Controls how inbound SMS reports are processed on the server.
+                  </p>
+                </div>
+              </div>
+              <form onSubmit={handleGeneralSave} className="settings-form">
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    checked={!!settings.auto_assign_nearest}
+                    disabled={settings.mode === 'MAINTENANCE'}
+                    onChange={(e) =>
+                      setSettings((s) => ({ ...s, auto_assign_nearest: e.target.checked }))
+                    }
+                  />
+                  <span>
+                    <strong>Auto-assign nearest technician</strong>
+                    <small>
+                      When a valid SMS report arrives, assign the closest available technician and
+                      mark the ticket in progress.
+                      {settings.mode === 'MAINTENANCE' && (
+                        <> Disabled while maintenance mode is on.</>
+                      )}
+                    </small>
+                  </span>
+                </label>
+
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    checked={!!settings.send_confirmation_sms}
+                    onChange={(e) =>
+                      setSettings((s) => ({ ...s, send_confirmation_sms: e.target.checked }))
+                    }
+                  />
+                  <span>
+                    <strong>Confirmation SMS to reporters</strong>
+                    <small>
+                      Send an Africa&apos;s Talking reply after a successful fault report (when the
+                      provider is configured).
+                    </small>
+                  </span>
+                </label>
+
+                <button type="submit" className="btn-primary" disabled={saving}>
+                  {saving ? 'Saving…' : 'Save SMS & organization settings'}
+                </button>
+              </form>
+            </section>
+
+            <section id="integrations" className="glass-panel settings-section">
+              <div className="settings-section-head">
+                <Icon icon={Plug} size="lg" className="settings-section-icon" />
+                <div>
+                  <h3 className="settings-section-title">Integrations</h3>
+                  <p className="settings-section-desc">
+                    Connection status for the WaterWise platform (managed on the server).
+                  </p>
+                </div>
+              </div>
+              <ul className="settings-info-list">
+                <li>
+                  <span>API service</span>
+                  <span className="settings-ok">{getPublicApiLabel()}</span>
+                </li>
+                <li>
+                  <span>SMS gateway shared secret</span>
+                  <span
+                    className={
+                      settings.sms_gateway_configured ? 'settings-ok' : 'settings-warn'
+                    }
+                  >
+                    {settings.sms_gateway_configured ? 'Configured' : 'Not set'}
+                  </span>
+                </li>
+                <li>
+                  <span>SMS provider (Africa&apos;s Talking)</span>
+                  <span
+                    className={
+                      settings.sms_provider_configured ? 'settings-ok' : 'settings-warn'
+                    }
+                  >
+                    {settings.sms_provider_configured ? 'Configured' : 'Not set'}
+                  </span>
+                </li>
+                <li>
+                  <span>Inbound webhook</span>
+                  <div className="settings-copy-row">
+                    <code className="mono">{getSmsWebhookUrl()}</code>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      onClick={() => copyText(getSmsWebhookUrl())}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </li>
+              </ul>
+              {(canConfigureGateway || isStaff) && (
+                <p className="settings-section-desc" style={{ marginTop: '0.75rem' }}>
+                  Install the SMS relay APK on a dedicated handset, enter the webhook URL and shared
+                  secret, and keep the device online for inbound community SMS.
+                  {!settings.sms_gateway_configured && (
+                    <> Ask your administrator to enable the gateway shared secret on the server.</>
+                  )}
+                </p>
+              )}
+            </section>
+
+            <section id="team" className="glass-panel settings-section">
+              <div className="settings-section-head">
+                <Icon icon={Users} size="lg" className="settings-section-icon" />
+                <div>
+                  <h3 className="settings-section-title">Team &amp; access</h3>
+                  <p className="settings-section-desc">
+                    Create portal and field accounts, assign roles, and manage the user list.
+                  </p>
+                </div>
+              </div>
+              <Link to="/users" className="btn-secondary" style={{ textDecoration: 'none' }}>
+                Open user accounts
+              </Link>
+            </section>
+          </>
+        )}
+
+        {!isStaff && (
+          <p className="settings-staff-note muted">
+            Organization, SMS, and operational settings are managed by staff administrators.
+          </p>
+        )}
       </div>
     </div>
   );

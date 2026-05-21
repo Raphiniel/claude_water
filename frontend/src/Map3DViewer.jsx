@@ -41,7 +41,7 @@ const TILE_STYLE = {
     },
   },
   layers: [
-    { id: 'background', type: 'background', paint: { 'background-color': '#020406' } },
+    { id: 'background', type: 'background', paint: { 'background-color': '#080808' } },
     { 
       id: 'satellite', 
       type: 'raster', 
@@ -215,7 +215,7 @@ const Map3DViewer = ({
         lbl.style.cssText = `
           background:${color};color:white;font-size:10px;font-weight:700;
           padding:2px 6px;border-radius:4px;white-space:nowrap;margin-bottom:3px;
-          box-shadow:0 2px 8px rgba(0,0,0,.55);font-family:sans-serif;
+          box-shadow:0 2px 8px rgba(0,0,0,.55);font-family:var(--font-body);
           letter-spacing:.03em;animation:pulse-label 2s infinite;
         `;
         el.appendChild(lbl);
@@ -233,7 +233,7 @@ const Map3DViewer = ({
       el.addEventListener('mouseleave', () => { dot.style.transform = 'scale(1)'; });
 
       const popupHtml = fault
-        ? `<div style="font-family:sans-serif;padding:6px 2px;min-width:165px;">
+        ? `<div style="font-family:var(--font-body);padding:6px 2px;min-width:165px;">
             <strong style="font-size:13px;color:#a3e635">${wp.code}</strong>
             <div style="font-size:12px;color:#888;margin:2px 0">${wp.location}</div>
             <hr style="border:none;border-top:1px solid #242424;margin:6px 0"/>
@@ -244,7 +244,7 @@ const Map3DViewer = ({
             <div style="font-size:11px;color:#888;margin-top:5px">Ticket: ${fault.ticket_number}</div>
             <div style="font-size:11px;color:#888">From: ${fault.sender_number}</div>
            </div>`
-        : `<div style="font-family:sans-serif;padding:4px 2px;">
+        : `<div style="font-family:var(--font-body);padding:4px 2px;">
             <strong style="font-size:13px;color:#a3e635">${wp.code}</strong>
             <div style="font-size:12px;color:#888">${wp.location}</div>
             <div style="font-size:11px;color:#10b981;margin-top:4px;font-weight:600">✓ No active faults</div>
@@ -282,7 +282,7 @@ const Map3DViewer = ({
         background:rgba(10,10,10,0.8);color:${color};font-size:10px;font-weight:700;
         padding:2px 6px;border-radius:4px;white-space:nowrap;margin-bottom:3px;
         border:1px solid ${color};box-shadow:0 2px 8px rgba(0,0,0,.55);
-        font-family:sans-serif;letter-spacing:.03em;
+        font-family:var(--font-body);letter-spacing:.03em;
       `;
       el.appendChild(lbl);
 
@@ -297,7 +297,7 @@ const Map3DViewer = ({
       el.addEventListener('mouseleave', () => { dot.style.transform = 'scale(1)'; });
 
       const popupHtml = `
-        <div style="font-family:sans-serif;padding:4px 2px;min-width:140px;">
+        <div style="font-family:var(--font-body);padding:4px 2px;min-width:140px;">
           <strong style="font-size:13px;color:#fff">${tech.name}</strong>
           <div style="font-size:12px;color:#888;margin:2px 0">${tech.zone || 'No Zone'}</div>
           <div style="display:inline-block;background:rgba(255,255,255,0.1);color:${color};padding:2px 6px;border-radius:10px;font-size:11px;font-weight:700;margin-top:4px;">
@@ -413,7 +413,9 @@ const Map3DViewer = ({
         .m3d-space-bg {
           position: absolute;
           inset: 0;
-          background: #020406;
+          background-color: var(--bg-color, #080808);
+          background-image: var(--app-shell-bg-image);
+          background-attachment: fixed;
           overflow: hidden;
           z-index: 0;
         }
@@ -452,7 +454,9 @@ const Map3DViewer = ({
           border-radius: 50%;
           overflow: hidden;
           border: 1px solid rgba(20, 30, 40, 0.4);
-          background: #020406;
+          background-color: var(--bg-color, #080808);
+          background-image: var(--app-shell-bg-image);
+          background-attachment: fixed;
           box-shadow: 0 0 60px rgba(0,0,0,0.5);
         }
 
@@ -493,7 +497,7 @@ const Map3DViewer = ({
           background: rgba(20, 28, 15, 0.9);
         }
         .m3d-cta-pill span {
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-display);
           font-size: 12px;
           font-weight: 600;
           color: #a3e635;
@@ -515,7 +519,7 @@ const Map3DViewer = ({
           border-radius: 30px;
           border: 1px solid rgba(163,230,53,0.2);
           backdrop-filter: blur(8px);
-          font-family: sans-serif;
+          font-family: var(--font-body);
           white-space: nowrap;
           box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
@@ -593,7 +597,7 @@ const Map3DViewer = ({
           ].map(({ color, label }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(10,10,10,0.8)', padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)' }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-              <span style={{ color: '#fff', fontSize: 10, fontFamily: 'sans-serif' }}>{label}</span>
+              <span style={{ color: '#fff', fontSize: 10, fontFamily: 'var(--font-body)' }}>{label}</span>
             </div>
           ))}
         </div>

@@ -1,4 +1,4 @@
-"""Generate launcher icons matching the Waterwise admin sidebar brand mark (Layout.jsx)."""
+"""Generate launcher icons matching the WaterWise admin sidebar brand mark (Layout.jsx)."""
 from __future__ import annotations
 
 from pathlib import Path

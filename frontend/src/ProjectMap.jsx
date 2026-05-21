@@ -5,6 +5,15 @@ import { useAuth } from './AuthContext';
 import GlobeHero from './GlobeHero';
 
 import { API_BASE as API } from './apiConfig';
+import {
+  AlertTriangle,
+  Droplet,
+  Info,
+  RefreshCw,
+  User,
+  Wifi,
+} from 'lucide-react';
+import { Icon } from './components/ui/icon';
 
 function formatRelativeTime(date) {
   if (!date) return '—';
@@ -21,45 +30,6 @@ function pct(n, total) {
   if (!total) return '0%';
   return `${Math.round((n / total) * 100)}%`;
 }
-
-const IconDroplet = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.32 0z" />
-  </svg>
-);
-const IconSignal = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-    <circle cx="12" cy="20" r="1" fill="currentColor" />
-  </svg>
-);
-const IconAlert = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-    <line x1="12" y1="9" x2="12" y2="13" />
-    <line x1="12" y1="17" x2="12.01" y2="17" />
-  </svg>
-);
-const IconRefresh = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <polyline points="23 4 23 10 17 10" />
-    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-  </svg>
-);
-const IconTech = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-const IconInfo = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="16" x2="12" y2="12" />
-    <line x1="12" y1="8" x2="12.01" y2="8" />
-  </svg>
-);
 
 const ProjectMap = () => {
   const [waterPoints, setWaterPoints] = useState([]);
@@ -145,7 +115,7 @@ const ProjectMap = () => {
       label: 'Total',
       value: total,
       sub: 'All points',
-      icon: <IconDroplet />,
+      icon: <Icon icon={Droplet} size="md" />,
       tone: 'default',
       onClick: () => navigate('/waterpoints'),
     },
@@ -154,7 +124,7 @@ const ProjectMap = () => {
       label: 'Online',
       value: onlineCount,
       sub: pct(onlineCount, total),
-      icon: <IconSignal />,
+      icon: <Icon icon={Wifi} size="md" />,
       tone: 'ok',
       onClick: () => navigate('/waterpoints?status=CLEAR'),
     },
@@ -163,7 +133,7 @@ const ProjectMap = () => {
       label: 'Faults',
       value: attentionCount,
       sub: pct(attentionCount, total),
-      icon: <IconAlert />,
+      icon: <Icon icon={AlertTriangle} size="md" />,
       tone: 'warn',
       onClick: () => navigate('/reports?status=PENDING'),
     },
@@ -172,7 +142,7 @@ const ProjectMap = () => {
       label: 'In progress',
       value: inProgressCount,
       sub: pct(inProgressCount, total),
-      icon: <IconRefresh />,
+      icon: <Icon icon={RefreshCw} size="md" />,
       tone: 'blue',
       onClick: () => navigate('/reports?status=IN_PROGRESS'),
     },
@@ -181,7 +151,7 @@ const ProjectMap = () => {
       label: 'Techs',
       value: liveTechnicians,
       sub: 'Active',
-      icon: <IconTech />,
+      icon: <Icon icon={User} size="md" />,
       tone: 'muted',
       onClick: () => navigate('/technicians?status=AVAILABLE'),
     },
@@ -225,7 +195,7 @@ const ProjectMap = () => {
         <div className="live-map-viewport">
           <aside className="live-map-about-card" aria-label="About this map">
             <h3>
-              <IconInfo />
+              <Icon icon={Info} size="sm" />
               About this map
             </h3>
             <p>Real-time overview of water point status across Zimbabwe.</p>

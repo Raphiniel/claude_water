@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { API_BASE as API } from './apiConfig';
+import { Icon } from './components/ui/icon';
+import { PageLoader } from './components/ui/loader';
 
 const FAULT_LABELS = {
   PUMP: 'Pump Failure',
@@ -34,15 +37,13 @@ function startOfDay(d) {
   return x;
 }
 
-function formatRelativeTime(date) {
-  if (!date) return '';
-  const sec = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (sec < 10) return 'Just now';
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  return `${hr}h ago`;
+function dayKey(d) {
+  return startOfDay(d).toISOString().slice(0, 10);
+}
+
+function formatShortDate(isoKey) {
+  const d = new Date(`${isoKey}T12:00:00`);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 function last7DayKeys() {
@@ -50,14 +51,43 @@ function last7DayKeys() {
   for (let i = 6; i >= 0; i -= 1) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    keys.push(startOfDay(d).toISOString().slice(0, 10));
+    keys.push(dayKey(d));
   }
   return keys;
 }
 
-function formatShortDate(isoKey) {
-  const d = new Date(`${isoKey}T12:00:00`);
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+function StatusDonut({ pending, inProgress, resolved, total, rate }) {
+  if (!total) {
+    return (
+      <div className="analytics-donut-wrap">
+        <div className="analytics-donut analytics-donut--empty" />
+        <div className="analytics-donut-label">
+          <strong>—</strong>
+          <span>No reports</span>
+        </div>
+      </div>
+    );
+  }
+  const pPct = (pending / total) * 100;
+  const iPct = (inProgress / total) * 100;
+  const rPct = (resolved / total) * 100;
+  const g1 = pPct;
+  const g2 = g1 + iPct;
+  const gradient = `conic-gradient(
+    #f59e0b 0% ${g1}%,
+    #3b82f6 ${g1}% ${g2}%,
+    #84cc16 ${g2}% 100%
+  )`;
+
+  return (
+    <div className="analytics-donut-wrap">
+      <div className="analytics-donut" style={{ background: gradient }} />
+      <div className="analytics-donut-label">
+        <strong>{rate}%</strong>
+        <span>Resolved</span>
+      </div>
+    </div>
+  );
 }
 
 const Analytics = () => {
@@ -66,7 +96,6 @@ const Analytics = () => {
   const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -88,9 +117,8 @@ const Analytics = () => {
       setReports(parseList(rRes.data));
       setWaterPoints(parseList(wpRes.data));
       setTechnicians(parseList(tRes.data).filter((t) => t.is_active !== false));
-      setLastUpdated(new Date());
     } catch (err) {
-      setFetchError(err.response?.data?.detail || err.message || 'Failed to load analytics');
+      setFetchError(err.response?.data?.detail || 'Unable to load analytics. Try again shortly.');
     } finally {
       setLoading(false);
     }
@@ -105,8 +133,8 @@ const Analytics = () => {
     const pending = reports.filter((r) => r.status === 'PENDING').length;
     const inProgress = reports.filter((r) => r.status === 'IN_PROGRESS').length;
     const resolved = reports.filter((r) => r.status === 'RESOLVED').length;
-    const resolutionRate = total ? Math.round((resolved / total) * 100) : 0;
     const open = pending + inProgress;
+    const resolutionRate = total ? Math.round((resolved / total) * 100) : 0;
 
     const faultCounts = reports.reduce((acc, r) => {
       const code = r.fault_code || 'OTHER';
@@ -123,11 +151,14 @@ const Analytics = () => {
     const resolvedByDay = Object.fromEntries(dayKeys.map((k) => [k, 0]));
 
     reports.forEach((r) => {
-      if (!r.created_at) return;
-      const createdKey = startOfDay(r.created_at).toISOString().slice(0, 10);
-      if (createdKey in createdByDay) createdByDay[createdKey] += 1;
-      if (r.status === 'RESOLVED' && createdKey in resolvedByDay) {
-        resolvedByDay[createdKey] += 1;
+      if (r.created_at) {
+        const createdKey = dayKey(r.created_at);
+        if (createdKey in createdByDay) createdByDay[createdKey] += 1;
+      }
+      const resolvedWhen = r.resolved_at || (r.status === 'RESOLVED' ? r.created_at : null);
+      if (resolvedWhen) {
+        const resolvedKey = dayKey(resolvedWhen);
+        if (resolvedKey in resolvedByDay) resolvedByDay[resolvedKey] += 1;
       }
     });
 
@@ -164,22 +195,20 @@ const Analytics = () => {
   }, [reports, waterPoints, technicians]);
 
   if (loading) {
-    return <div className="loading">Loading analytics…</div>;
+    return <PageLoader label="Loading analytics…" />;
   }
 
-  const hasData = stats.total > 0;
+  const hasReports = stats.total > 0;
 
   return (
-    <div className="settings-page">
+    <div className="analytics-page">
       <div className="page-header">
         <div>
           <h2 className="page-title">Analytics</h2>
-          <p className="page-subtitle">
-            Reports, faults, and field coverage from live data
-            {lastUpdated ? ` · Updated ${formatRelativeTime(lastUpdated)}` : ''}
-          </p>
+          <p className="page-subtitle">Operational overview across reports, faults, and field assets</p>
         </div>
-        <button type="button" onClick={loadData} className="btn-secondary btn-sm">
+        <button type="button" onClick={loadData} className="btn-secondary btn-sm analytics-refresh-btn">
+          <Icon icon={RefreshCw} size="sm" />
           Refresh
         </button>
       </div>
@@ -190,78 +219,53 @@ const Analytics = () => {
         </div>
       )}
 
-      <div className="settings-sections">
-        <section className="glass-panel settings-section">
-          <h3 className="settings-section-title">Overview</h3>
-          <p className="settings-section-desc">Click a card to open the filtered list.</p>
-          <div className="reports-summary-cards analytics-kpi-cards">
-            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports')}>
-              <span className="reports-filter-card-head">
-                <span className="dashboard-kpi-dot purple" aria-hidden />
-                Total reports
-              </span>
-              <strong>{stats.total}</strong>
-              <small>Full queue</small>
-            </button>
-            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=PENDING')}>
-              <span className="reports-filter-card-head">
-                <span className="dashboard-kpi-dot amber" aria-hidden />
-                Pending
-              </span>
-              <strong>{stats.pending}</strong>
-              <small>Awaiting assignment</small>
-            </button>
-            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=IN_PROGRESS')}>
-              <span className="reports-filter-card-head">
-                <span className="dashboard-kpi-dot blue" aria-hidden />
-                In progress
-              </span>
-              <strong>{stats.inProgress}</strong>
-              <small>Technician assigned</small>
-            </button>
-            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=RESOLVED')}>
-              <span className="reports-filter-card-head">
-                <span className="dashboard-kpi-dot green" aria-hidden />
-                Resolved
-              </span>
-              <strong>{stats.resolved}</strong>
-              <small>Closed tickets</small>
-            </button>
-            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=RESOLVED')}>
-              <span className="reports-filter-card-head">
-                <span className="dashboard-kpi-dot green" aria-hidden />
-                Resolution rate
-              </span>
-              <strong>{stats.resolutionRate}%</strong>
-              <small>Share resolved</small>
-            </button>
-            <button type="button" className="reports-filter-card" onClick={() => navigate('/reports')}>
-              <span className="reports-filter-card-head">
-                <span className="dashboard-kpi-dot red" aria-hidden />
-                Open
-              </span>
-              <strong>{stats.open}</strong>
-              <small>Pending + in progress</small>
-            </button>
-          </div>
-        </section>
+      <div className="analytics-kpi-row">
+        <button type="button" className="analytics-kpi" onClick={() => navigate('/reports')}>
+          <span className="analytics-kpi-label">Open reports</span>
+          <strong>{stats.open}</strong>
+          <small>Pending and in progress</small>
+        </button>
+        <button
+          type="button"
+          className="analytics-kpi"
+          onClick={() => navigate('/reports?status=RESOLVED')}
+        >
+          <span className="analytics-kpi-label">Resolution rate</span>
+          <strong>{stats.resolutionRate}%</strong>
+          <small>
+            {stats.resolved} of {stats.total} closed
+          </small>
+        </button>
+        <button type="button" className="analytics-kpi" onClick={() => navigate('/waterpoints')}>
+          <span className="analytics-kpi-label">Water points</span>
+          <strong>{stats.wpCount}</strong>
+          <small>{stats.gpsPct}% with GPS</small>
+        </button>
+        <button
+          type="button"
+          className="analytics-kpi"
+          onClick={() => navigate('/technicians?status=AVAILABLE')}
+        >
+          <span className="analytics-kpi-label">Technicians ready</span>
+          <strong>{stats.availableTechs}</strong>
+          <small>Of {stats.techCount} active</small>
+        </button>
+      </div>
 
-        {!hasData ? (
-          <section className="glass-panel settings-section">
-            <h3 className="settings-section-title">No data yet</h3>
-            <p className="settings-section-desc">
-              Fault reports from SMS and the portal will appear here once submitted.
-            </p>
-            <Link to="/reports" className="btn-primary" style={{ textDecoration: 'none', width: 'fit-content' }}>
-              View reports
-            </Link>
-          </section>
-        ) : (
-          <>
-            <section className="glass-panel settings-section">
-              <h3 className="settings-section-title">Activity — last 7 days</h3>
-              <p className="settings-section-desc">New reports vs resolved (by report date).</p>
-              <div className="analytics-legend analytics-legend--inline" style={{ marginBottom: '0.75rem' }}>
+      {!hasReports ? (
+        <section className="glass-panel analytics-empty">
+          <h3>No report data yet</h3>
+          <p>When faults are logged via SMS or the portal, trends and breakdowns will appear here.</p>
+          <button type="button" className="btn-primary" onClick={() => navigate('/reports')}>
+            View reports
+          </button>
+        </section>
+      ) : (
+        <div className="analytics-grid">
+          <section className="glass-panel analytics-panel analytics-panel--chart">
+            <div className="analytics-panel-head">
+              <h3>Last 7 days</h3>
+              <div className="analytics-legend analytics-legend--inline">
                 <span>
                   <i className="analytics-legend-dot analytics-legend-dot--created" />
                   New
@@ -271,163 +275,166 @@ const Analytics = () => {
                   Resolved
                 </span>
               </div>
-              <div className="analytics-week-chart">
-                {stats.weeklyTrend.map((day) => {
-                  const createdH = Math.max(day.created ? 12 : 4, (day.created / stats.trendMax) * 100);
-                  const resolvedH = Math.max(day.resolved ? 12 : 4, (day.resolved / stats.trendMax) * 100);
-                  return (
-                    <div
-                      key={day.key}
-                      className="analytics-week-col"
-                      title={`${day.dateLabel}: ${day.created} new, ${day.resolved} resolved`}
-                    >
-                      <div className="analytics-week-bars">
-                        <div
-                          className="analytics-week-bar analytics-week-bar--created"
-                          style={{ height: `${createdH}%` }}
-                        />
-                        <div
-                          className="analytics-week-bar analytics-week-bar--resolved"
-                          style={{ height: `${resolvedH}%` }}
-                        />
-                      </div>
-                      <span className="analytics-week-label">{day.label}</span>
-                      <span className="analytics-week-date">{day.dateLabel}</span>
+            </div>
+            <div className="analytics-week-chart">
+              {stats.weeklyTrend.map((day) => {
+                const createdH = Math.max(day.created ? 12 : 4, (day.created / stats.trendMax) * 100);
+                const resolvedH = Math.max(day.resolved ? 12 : 4, (day.resolved / stats.trendMax) * 100);
+                return (
+                  <div
+                    key={day.key}
+                    className="analytics-week-col"
+                    title={`${day.dateLabel}: ${day.created} new, ${day.resolved} resolved`}
+                  >
+                    <div className="analytics-week-bars">
+                      <div
+                        className="analytics-week-bar analytics-week-bar--created"
+                        style={{ height: `${createdH}%` }}
+                      />
+                      <div
+                        className="analytics-week-bar analytics-week-bar--resolved"
+                        style={{ height: `${resolvedH}%` }}
+                      />
                     </div>
+                    <span className="analytics-week-label">{day.label}</span>
+                    <span className="analytics-week-date">{day.dateLabel}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="glass-panel analytics-panel">
+            <div className="analytics-panel-head">
+              <h3>Report status</h3>
+            </div>
+            <div className="analytics-status-layout">
+              <StatusDonut
+                pending={stats.pending}
+                inProgress={stats.inProgress}
+                resolved={stats.resolved}
+                total={stats.total}
+                rate={stats.resolutionRate}
+              />
+              <ul className="analytics-status-legend">
+                <li>
+                  <span className="analytics-status-swatch analytics-status-swatch--pending" />
+                  Pending
+                  <strong>{stats.pending}</strong>
+                </li>
+                <li>
+                  <span className="analytics-status-swatch analytics-status-swatch--progress" />
+                  In progress
+                  <strong>{stats.inProgress}</strong>
+                </li>
+                <li>
+                  <span className="analytics-status-swatch analytics-status-swatch--resolved" />
+                  Resolved
+                  <strong>{stats.resolved}</strong>
+                </li>
+              </ul>
+            </div>
+            <div className="analytics-status-stack" aria-hidden>
+              <div
+                className="analytics-status-seg analytics-status-seg--pending"
+                style={{ flex: stats.pending || 0.001 }}
+              />
+              <div
+                className="analytics-status-seg analytics-status-seg--progress"
+                style={{ flex: stats.inProgress || 0.001 }}
+              />
+              <div
+                className="analytics-status-seg analytics-status-seg--resolved"
+                style={{ flex: stats.resolved || 0.001 }}
+              />
+            </div>
+            <div className="analytics-status-actions">
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => navigate('/reports?status=PENDING')}
+              >
+                Pending queue
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => navigate('/reports?status=IN_PROGRESS')}
+              >
+                In progress
+              </button>
+            </div>
+          </section>
+
+          <section className="glass-panel analytics-panel">
+            <div className="analytics-panel-head">
+              <h3>Fault types</h3>
+            </div>
+            {stats.faultData.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>No categories recorded.</p>
+            ) : (
+              <ul className="analytics-fault-list">
+                {stats.faultData.map(([code, count]) => {
+                  const pct = stats.total ? Math.round((count / stats.total) * 100) : 0;
+                  return (
+                    <li key={code}>
+                      <span className={`fault-badge fault-${code.toLowerCase()}`}>
+                        {FAULT_LABELS[code] || code}
+                      </span>
+                      <div className="analytics-fault-row-meta">
+                        <span>
+                          {count} <span className="muted">({pct}%)</span>
+                        </span>
+                        <div className="analytics-bar-track">
+                          <div
+                            className="analytics-bar-fill"
+                            style={{
+                              width: `${(count / stats.maxFault) * 100}%`,
+                              background: FAULT_COLORS[code] || FAULT_COLORS.OTHER,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </li>
                   );
                 })}
-              </div>
-            </section>
+              </ul>
+            )}
+          </section>
 
-            <section className="glass-panel settings-section">
-              <h3 className="settings-section-title">Resolution</h3>
-              <p className="settings-section-desc">Share of reports marked resolved.</p>
-              <div className="reports-summary-cards analytics-kpi-cards analytics-kpi-cards--compact">
-                <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=RESOLVED')}>
-                  <span className="reports-filter-card-head">
-                    <span className="dashboard-kpi-dot green" aria-hidden />
-                    Resolution rate
-                  </span>
-                  <strong>{stats.resolutionRate}%</strong>
-                  <small>Resolved share</small>
-                </button>
-                <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=PENDING')}>
-                  <span className="reports-filter-card-head">
-                    <span className="dashboard-kpi-dot amber" aria-hidden />
-                    Pending
-                  </span>
-                  <strong>{stats.pending}</strong>
-                  <small>Awaiting work</small>
-                </button>
-                <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=IN_PROGRESS')}>
-                  <span className="reports-filter-card-head">
-                    <span className="dashboard-kpi-dot blue" aria-hidden />
-                    In progress
-                  </span>
-                  <strong>{stats.inProgress}</strong>
-                  <small>Assigned</small>
-                </button>
-                <button type="button" className="reports-filter-card" onClick={() => navigate('/reports?status=RESOLVED')}>
-                  <span className="reports-filter-card-head">
-                    <span className="dashboard-kpi-dot green" aria-hidden />
-                    Resolved
-                  </span>
-                  <strong>{stats.resolved}</strong>
-                  <small>Closed</small>
-                </button>
-              </div>
-              <div className="analytics-status-stack" aria-hidden>
-                <div
-                  className="analytics-status-seg analytics-status-seg--pending"
-                  style={{ flex: stats.pending || 0.001 }}
-                />
-                <div
-                  className="analytics-status-seg analytics-status-seg--progress"
-                  style={{ flex: stats.inProgress || 0.001 }}
-                />
-                <div
-                  className="analytics-status-seg analytics-status-seg--resolved"
-                  style={{ flex: stats.resolved || 0.001 }}
-                />
-              </div>
-            </section>
-
-            <section className="glass-panel settings-section">
-              <h3 className="settings-section-title">Fault breakdown</h3>
-              <p className="settings-section-desc">Most common issue types across all reports.</p>
-              {stats.faultData.length === 0 ? (
-                <p className="muted" style={{ margin: 0 }}>No fault categories recorded yet.</p>
-              ) : (
-                <ul className="settings-info-list analytics-fault-list">
-                  {stats.faultData.map(([code, count]) => {
-                    const pct = stats.total ? Math.round((count / stats.total) * 100) : 0;
-                    return (
-                      <li key={code}>
-                        <span className={`fault-badge fault-${code.toLowerCase()}`}>
-                          {FAULT_LABELS[code] || code}
-                        </span>
-                        <div className="analytics-fault-row-meta">
-                          <span>
-                            {count} <span className="muted">({pct}%)</span>
-                          </span>
-                          <div className="analytics-bar-track">
-                            <div
-                              className="analytics-bar-fill"
-                              style={{
-                                width: `${(count / stats.maxFault) * 100}%`,
-                                background: FAULT_COLORS[code] || FAULT_COLORS.OTHER,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-
-            <section className="glass-panel settings-section">
-              <h3 className="settings-section-title">Field coverage</h3>
-              <p className="settings-section-desc">Water points and technicians in the system.</p>
-              <div className="reports-summary-cards analytics-kpi-cards analytics-kpi-cards--compact">
-                <button type="button" className="reports-filter-card" onClick={() => navigate('/waterpoints')}>
-                  <span className="reports-filter-card-head">
-                    <span className="dashboard-kpi-dot blue" aria-hidden />
-                    Water points
-                  </span>
-                  <strong>{stats.wpCount}</strong>
-                  <small>Registered</small>
-                </button>
-                <button type="button" className="reports-filter-card" onClick={() => navigate('/waterpoints?status=NO_GPS')}>
-                  <span className="reports-filter-card-head">
-                    <span className="dashboard-kpi-dot purple" aria-hidden />
-                    GPS mapped
-                  </span>
-                  <strong>{stats.gpsPct}%</strong>
-                  <small>{stats.withGps} with coordinates</small>
-                </button>
-                <button type="button" className="reports-filter-card" onClick={() => navigate('/technicians')}>
-                  <span className="reports-filter-card-head">
-                    <span className="dashboard-kpi-dot purple" aria-hidden />
-                    Technicians
-                  </span>
-                  <strong>{stats.techCount}</strong>
-                  <small>Active roster</small>
-                </button>
-                <button type="button" className="reports-filter-card" onClick={() => navigate('/technicians?status=AVAILABLE')}>
-                  <span className="reports-filter-card-head">
-                    <span className="dashboard-kpi-dot green" aria-hidden />
-                    Available
-                  </span>
-                  <strong>{stats.availableTechs}</strong>
-                  <small>Ready now</small>
-                </button>
-              </div>
-            </section>
-          </>
-        )}
-      </div>
+          <section className="glass-panel analytics-panel">
+            <div className="analytics-panel-head">
+              <h3>Infrastructure</h3>
+            </div>
+            <div className="analytics-infra-grid">
+              <button type="button" className="analytics-infra-tile" onClick={() => navigate('/waterpoints')}>
+                <span>Water points</span>
+                <strong>{stats.wpCount}</strong>
+              </button>
+              <button
+                type="button"
+                className="analytics-infra-tile"
+                onClick={() => navigate('/waterpoints?status=NO_GPS')}
+              >
+                <span>GPS mapped</span>
+                <strong>{stats.withGps}</strong>
+              </button>
+              <button type="button" className="analytics-infra-tile" onClick={() => navigate('/technicians')}>
+                <span>Technicians</span>
+                <strong>{stats.techCount}</strong>
+              </button>
+              <button
+                type="button"
+                className="analytics-infra-tile"
+                onClick={() => navigate('/technicians?status=AVAILABLE')}
+              >
+                <span>Available now</span>
+                <strong>{stats.availableTechs}</strong>
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 };

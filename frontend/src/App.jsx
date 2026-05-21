@@ -17,6 +17,7 @@ import Help from './Help';
 import TechnicianField from './TechnicianField';
 import Users from './Users';
 import { API_BASE as API } from './apiConfig';
+import { LoadingOverlay, PageLoader } from './components/ui/loader';
 
 const FAULT_LABELS = {
   PUMP: 'Pump Failure', LEAK: 'Pipe Leak', DRY: 'Borehole Dry',
@@ -184,17 +185,41 @@ const Dashboard = () => {
 
   const pendingReports = reports.filter(r => r.status === 'PENDING');
   const inProgressReports = reports.filter(r => r.status === 'IN_PROGRESS');
-  const recentReports = [...reports].slice(0, 3);
+  const recentReports = [...reports]
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    .slice(0, 3);
   const activeTechs = technicians.filter(t => t.is_available).length;
   const totalTechs = technicians.length;
   const uptime = waterPoints.length > 0 ? ((waterPoints.length - pendingReports.length) / waterPoints.length) * 100 : 99.9;
-  const trendPoints = [4, 5, 6, 4, 3, 4, 5];
-  const trendMax = Math.max(...trendPoints);
+
+  const reportTrend = (() => {
+    const days = [];
+    for (let i = 6; i >= 0; i -= 1) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      const key = d.toISOString().slice(0, 10);
+      const count = reports.filter((r) => {
+        if (!r.created_at) return false;
+        const rd = new Date(r.created_at);
+        rd.setHours(0, 0, 0, 0);
+        return rd.toISOString().slice(0, 10) === key;
+      }).length;
+      days.push({
+        key,
+        label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        count,
+      });
+    }
+    return days;
+  })();
+  const trendMax = Math.max(1, ...reportTrend.map((d) => d.count));
 
   return (
-    <div className="dashboard-replica">
+    <div className="dashboard-replica" style={{ position: 'relative' }}>
+      {loading && <LoadingOverlay label="Loading dashboard…" />}
       {fetchError && (
-        <div className="alert alert-error">API error: {fetchError}</div>
+        <div className="alert alert-error">Unable to load dashboard data. Refresh the page or try again later.</div>
       )}
 
       <div className="dashboard-replica-grid">
@@ -268,15 +293,20 @@ const Dashboard = () => {
 
             <div className="dashboard-mini-card">
               <div className="dashboard-mini-head">
-                <h4>Water Points Trend (7 Days)</h4>
-                <button>7 days</button>
+                <h4>Reports (7 days)</h4>
               </div>
               <div className="dashboard-trend">
-                {trendPoints.map((v, idx) => (
-                  <div key={`${idx}-${v}`} className="dashboard-trend-col">
-                    <div className="dashboard-trend-dot" style={{ bottom: `${(v / trendMax) * 78}%` }} />
-                    <div className="dashboard-trend-line" style={{ height: `${(v / trendMax) * 80}%` }} />
-                    <span>May {18 + idx}</span>
+                {reportTrend.map((day) => (
+                  <div key={day.key} className="dashboard-trend-col">
+                    <div
+                      className="dashboard-trend-dot"
+                      style={{ bottom: `${(day.count / trendMax) * 78}%` }}
+                    />
+                    <div
+                      className="dashboard-trend-line"
+                      style={{ height: `${(day.count / trendMax) * 80}%` }}
+                    />
+                    <span>{day.label}</span>
                   </div>
                 ))}
               </div>
@@ -396,7 +426,7 @@ const Dashboard = () => {
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="loading">Checking auth...</div>;
+  if (loading) return <PageLoader label="Signing you in…" className="ww-loader--auth" />;
   if (!user) return <Navigate to="/login" />;
   return children;
 };

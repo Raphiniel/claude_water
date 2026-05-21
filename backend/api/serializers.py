@@ -21,6 +21,7 @@ class UserAccountSerializer(serializers.ModelSerializer):
             "id",
             "username",
             "email",
+            "is_active",
             "is_staff",
             "is_superuser",
             "role",
@@ -89,6 +90,73 @@ class AdminUserCreateSerializer(serializers.Serializer):
         apply_role_groups(user, role or "technician")
         user.save()
         return user
+
+
+class AdminUserUpdateSerializer(serializers.Serializer):
+    """Staff update: email, role, active flag."""
+
+    email = serializers.EmailField(required=False, allow_blank=True)
+    role = serializers.ChoiceField(
+        choices=("technician", "community_leader", "admin"),
+        required=False,
+    )
+    is_active = serializers.BooleanField(required=False)
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        instance = self.context.get("instance")
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError("Authentication required.")
+        if not instance:
+            raise serializers.ValidationError("User not found.")
+        if instance.is_superuser and not request.user.is_superuser:
+            raise serializers.ValidationError(
+                "Only superusers can modify superuser accounts."
+            )
+        if attrs.get("is_active") is False and instance.id == request.user.id:
+            raise serializers.ValidationError(
+                {"is_active": "You cannot disable your own account."}
+            )
+        if "role" in attrs and instance.is_superuser:
+            raise serializers.ValidationError(
+                {"role": "Role cannot be changed on a superuser account."}
+            )
+        return attrs
+
+    def update(self, instance, validated_data):
+        if "email" in validated_data:
+            instance.email = (validated_data.get("email") or "").strip()
+        if "is_active" in validated_data:
+            instance.is_active = validated_data["is_active"]
+        if "role" in validated_data and not instance.is_superuser:
+            apply_role_groups(instance, validated_data["role"])
+        instance.save()
+        return instance
+
+
+class AdminSetPasswordSerializer(serializers.Serializer):
+    new_password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        style={"input_type": "password"},
+    )
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        instance = self.context.get("instance")
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError("Authentication required.")
+        if instance and instance.is_superuser and not request.user.is_superuser:
+            raise serializers.ValidationError(
+                "Only superusers can reset a superuser password."
+            )
+        return attrs
+
+    def save(self):
+        instance = self.context["instance"]
+        instance.set_password(self.validated_data["new_password"])
+        instance.save()
+        return instance
 
 
 class FaultReportSerializer(serializers.ModelSerializer):

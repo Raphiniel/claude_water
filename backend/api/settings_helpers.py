@@ -10,7 +10,10 @@ def get_system_settings():
 
 def auto_assign_nearest_enabled():
     try:
-        return get_system_settings().auto_assign_nearest
+        setting = get_system_settings()
+        if setting.mode == "MAINTENANCE":
+            return False
+        return setting.auto_assign_nearest
     except Exception:
         return True
 

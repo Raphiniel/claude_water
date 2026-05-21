@@ -8,8 +8,34 @@ import Map3DViewer from './Map3DViewer';
 import TableRowMenu, { TableRowMenuItem } from './TableRowMenu';
 
 import { API_BASE as API } from './apiConfig';
+import {
+  AlertTriangle,
+  Droplet,
+  Layers,
+  MapPin,
+  MapPinOff,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Wifi,
+} from 'lucide-react';
+import { Icon } from './components/ui/icon';
+import { Loader, LoadingOverlay } from './components/ui/loader';
 
 const PAGE_SIZE = 10;
+
+const FAULT_LABELS = {
+  PUMP: 'Pump Failure',
+  LEAK: 'Pipe Leak',
+  DRY: 'Borehole Dry',
+  CONTAM: 'Contamination',
+  VANDAL: 'Vandalism',
+  OTHER: 'Other',
+};
+
+function parseList(data) {
+  return Array.isArray(data) ? data : data?.results || [];
+}
 
 const STATUS_FILTERS = [
   { key: 'ALL', statLabel: 'ALL POINTS', tone: 'purple', hint: 'Total registered' },
@@ -42,59 +68,7 @@ function formatRelativeTime(date) {
   return `${hr}h ago`;
 }
 
-const IconRefresh = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <polyline points="23 4 23 10 17 10" />
-    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-  </svg>
-);
-
-const IconDroplet = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.32 0z" />
-  </svg>
-);
-
-const IconLayers = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <polygon points="12 2 2 7 12 12 22 7 12 2" />
-    <polyline points="2 17 12 22 22 17" />
-    <polyline points="2 12 12 17 22 12" />
-  </svg>
-);
-
-const IconShield = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    <polyline points="9 12 11 14 15 10" />
-  </svg>
-);
-
-const IconAlert = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-    <line x1="12" y1="9" x2="12" y2="13" />
-    <line x1="12" y1="17" x2="12.01" y2="17" />
-  </svg>
-);
-
-const IconPinOff = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-    <circle cx="12" cy="10" r="3" />
-    <line x1="2" y1="2" x2="22" y2="22" />
-  </svg>
-);
-
-const IconSignal = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-    <circle cx="12" cy="20" r="1" fill="currentColor" />
-  </svg>
-);
-
-const STAT_ICONS = { purple: IconLayers, green: IconShield, amber: IconAlert, red: IconPinOff };
+const STAT_ICONS = { purple: Layers, green: ShieldCheck, amber: AlertTriangle, red: MapPinOff };
 
 const SPARKLINE_PATHS = {
   purple: 'M0,14 L5,10 L10,12 L15,7 L20,9 L24,5',
@@ -234,46 +208,188 @@ const WaterPointAddModal = ({
   </div>
 );
 
-const WaterPointDetailModal = ({ point, faultCount, onClose, onFlyToMap, onDelete }) => {
+function ReportHistoryCard({ report, onViewReports }) {
+  const tech = report.assigned_to_details;
+  const closedBy = report.closed_by_staff_username || report.closed_by_technician_name;
+
+  return (
+    <article className="wp-repair-card">
+      <div className="wp-repair-card-head">
+        <span className="mono wp-repair-ticket">{report.ticket_number}</span>
+        <span className={`status-badge status-${report.status?.toLowerCase()}`}>
+          {report.status?.replace('_', ' ')}
+        </span>
+      </div>
+      <div className="wp-repair-card-meta">
+        <span className={`fault-badge fault-${(report.fault_code || 'other').toLowerCase()}`}>
+          {FAULT_LABELS[report.fault_code] || report.fault_code}
+        </span>
+        <span className="muted">Reported {formatDate(report.created_at)}</span>
+        {report.status === 'RESOLVED' && report.resolved_at && (
+          <span className="muted">Resolved {formatDate(report.resolved_at)}</span>
+        )}
+      </div>
+      {tech && (
+        <p className="wp-repair-line">
+          <strong>Technician:</strong> {tech.name}
+          {tech.phone ? <span className="muted"> · {tech.phone}</span> : null}
+        </p>
+      )}
+      {report.sender_number && (
+        <p className="wp-repair-line">
+          <strong>Reporter:</strong> <span className="mono">{report.sender_number}</span>
+        </p>
+      )}
+      {report.raw_message && (
+        <p className="wp-repair-message">{report.raw_message}</p>
+      )}
+      {report.status === 'RESOLVED' && (
+        <>
+          {closedBy && (
+            <p className="wp-repair-line muted">
+              Closed by {closedBy}
+            </p>
+          )}
+          {report.closure_notes && (
+            <p className="wp-repair-notes">
+              <strong>Repair notes:</strong> {report.closure_notes}
+            </p>
+          )}
+        </>
+      )}
+      <button type="button" className="btn-ghost btn-sm wp-repair-open" onClick={() => onViewReports(report)}>
+        Open in reports
+      </button>
+    </article>
+  );
+}
+
+const WaterPointDetailModal = ({
+  point,
+  pointReports,
+  faultCount,
+  onClose,
+  onFlyToMap,
+  onDelete,
+  onViewReports,
+}) => {
   const hasFault = faultCount > 0;
+  const openReports = pointReports.filter((r) => r.status !== 'RESOLVED');
+  const repairHistory = pointReports
+    .filter((r) => r.status === 'RESOLVED')
+    .sort(
+      (a, b) =>
+        new Date(b.resolved_at || b.created_at || 0) - new Date(a.resolved_at || a.created_at || 0)
+    );
+  const resolvedCount = repairHistory.length;
+  const totalReports = pointReports.length;
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520, width: '92%' }}>
+      <div
+        className="modal-panel wp-detail-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <div>
             <h3>{point.code}</h3>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4 }}>
+            <p className="wp-detail-subtitle">
               {point.location} · Registered {formatDate(point.created_at)}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="modal-close">✕</button>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Close">
+            ✕
+          </button>
         </div>
 
-        <div style={{ display: 'grid', gap: '0.85rem', fontSize: '0.88rem' }}>
+        <dl className="wp-detail-grid">
           <div>
-            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Status</div>
-            <span className={`status-badge ${hasFault ? 'wp-status-fault' : 'wp-status-clear'}`}>
-              {hasFault ? `${faultCount} active fault${faultCount > 1 ? 's' : ''}` : 'Clear'}
-            </span>
+            <dt>Status</dt>
+            <dd>
+              <span className={`status-badge ${hasFault ? 'wp-status-fault' : 'wp-status-clear'}`}>
+                {hasFault ? `${faultCount} active fault${faultCount > 1 ? 's' : ''}` : 'Clear'}
+              </span>
+            </dd>
           </div>
           <div>
-            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Coordinates</div>
-            {point.latitude && point.longitude ? (
-              <span className="mono">{point.latitude}, {point.longitude}</span>
-            ) : (
-              <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not set</span>
+            <dt>Total reports</dt>
+            <dd>{totalReports}</dd>
+          </div>
+          <div>
+            <dt>Coordinates</dt>
+            <dd>
+              {point.latitude && point.longitude ? (
+                <span className="mono">{point.latitude}, {point.longitude}</span>
+              ) : (
+                <span className="muted">Not set</span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Repairs completed</dt>
+            <dd>{resolvedCount}</dd>
+          </div>
+          <div className="wp-detail-grid--full">
+            <dt>Description</dt>
+            <dd>{point.description || '—'}</dd>
+          </div>
+        </dl>
+
+        {openReports.length > 0 && (
+          <section className="wp-detail-section">
+            <h4 className="wp-detail-section-title">Open faults</h4>
+            <div className="wp-repair-list">
+              {openReports.map((r) => (
+                <ReportHistoryCard key={r.id} report={r} onViewReports={onViewReports} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="wp-detail-section">
+          <h4 className="wp-detail-section-title">
+            Repair history
+            {repairHistory.length > 0 && (
+              <span className="wp-detail-section-count">{repairHistory.length}</span>
             )}
-          </div>
-          <div>
-            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Description</div>
-            <div style={{ lineHeight: 1.45 }}>{point.description || '—'}</div>
-          </div>
-        </div>
+          </h4>
+          {repairHistory.length === 0 ? (
+            <p className="wp-detail-empty muted">No completed repairs recorded for this water point yet.</p>
+          ) : (
+            <div className="wp-repair-list">
+              {repairHistory.map((r) => (
+                <ReportHistoryCard key={r.id} report={r} onViewReports={onViewReports} />
+              ))}
+            </div>
+          )}
+        </section>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: '1.25rem', flexWrap: 'wrap' }}>
-          <button type="button" className="btn-secondary" onClick={() => { onClose(); onFlyToMap(point.code); }}>
+        {totalReports > 0 && (
+          <p className="wp-detail-footer-note muted">
+            Showing all fault reports linked to {point.code}, newest first.
+          </p>
+        )}
+
+        <div className="wp-detail-actions">
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => {
+              onClose();
+              onFlyToMap(point.code);
+            }}
+          >
             View on map
           </button>
+          {totalReports > 0 && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => onViewReports(null)}
+            >
+              All reports
+            </button>
+          )}
           <button
             type="button"
             className="btn-danger-sm"
@@ -328,8 +444,8 @@ const WaterPoints = () => {
         axios.get(`${API}/api/waterpoints/`, { headers: authHeader() }),
         axios.get(`${API}/api/reports/`, { headers: authHeader() }),
       ]);
-      setWaterPoints(wpRes.data);
-      setReports(rRes.data);
+      setWaterPoints(parseList(wpRes.data));
+      setReports(parseList(rRes.data));
       setFetchError(null);
       setLastUpdated(new Date());
     } catch (err) {
@@ -467,6 +583,22 @@ const WaterPoints = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const pointReports = useMemo(() => {
+    if (!detailPoint) return [];
+    return reports
+      .filter((r) => r.water_point_code === detailPoint.code)
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  }, [reports, detailPoint]);
+
+  const openReportsForPoint = (report) => {
+    setDetailPoint(null);
+    if (report?.status) {
+      navigate(`/reports?status=${report.status}`);
+    } else {
+      navigate('/reports');
+    }
+  };
+
   return (
     <div className="water-points-page">
       <header className="wp-page-header">
@@ -484,7 +616,7 @@ const WaterPoints = () => {
         </div>
         <div className="wp-page-actions">
           <button type="button" onClick={fetchData} className="btn-secondary btn-sm wp-btn-refresh">
-            <IconRefresh />
+            <Icon icon={RefreshCw} size="sm" strokeWidth={2.5} />
             Refresh
           </button>
           <button type="button" onClick={() => setShowForm(true)} className="btn-primary wp-btn-add">
@@ -499,7 +631,7 @@ const WaterPoints = () => {
       <section className="wp-overview-card" aria-label="Water points overview">
         <div className="wp-overview-copy">
           <div className="wp-overview-icon" aria-hidden>
-            <IconDroplet />
+            <Icon icon={Droplet} size="lg" />
           </div>
           <h2>Overview</h2>
           <p>
@@ -511,7 +643,8 @@ const WaterPoints = () => {
             {allOperational ? 'All systems operational' : `${counts.FAULTY} point${counts.FAULTY === 1 ? '' : 's'} need attention`}
           </p>
         </div>
-        <div className="wp-overview-map">
+        <div className="wp-overview-map" style={{ position: 'relative' }}>
+          {loading && <LoadingOverlay label="Loading water points…" />}
           <GlobeHero
             waterPoints={waterPoints}
             reports={reports}
@@ -526,21 +659,21 @@ const WaterPoints = () => {
         </div>
         <aside className="wp-insights" aria-label="Quick insights">
           <div className="wp-insight-row">
-            <span className="wp-insight-icon wp-insight-icon--blue" aria-hidden><IconDroplet /></span>
+            <span className="wp-insight-icon wp-insight-icon--blue" aria-hidden><Icon icon={Droplet} size="lg" /></span>
             <div>
               <strong>{waterPoints.length}</strong>
               <span>Total water points</span>
             </div>
           </div>
           <div className="wp-insight-row">
-            <span className="wp-insight-icon wp-insight-icon--amber" aria-hidden><IconAlert /></span>
+            <span className="wp-insight-icon wp-insight-icon--amber" aria-hidden><Icon icon={AlertTriangle} size="lg" /></span>
             <div>
               <strong>{totalFaults}</strong>
               <span>Faults detected</span>
             </div>
           </div>
           <div className="wp-insight-row">
-            <span className="wp-insight-icon wp-insight-icon--green" aria-hidden><IconSignal /></span>
+            <span className="wp-insight-icon wp-insight-icon--green" aria-hidden><Icon icon={Wifi} size="md" /></span>
             <div>
               <strong>{onlineCount}</strong>
               <span>Online &amp; operational</span>
@@ -568,7 +701,7 @@ const WaterPoints = () => {
               aria-pressed={statusFilter === card.key}
             >
               <span className={`wp-stat-icon wp-stat-icon--${card.tone}`} aria-hidden>
-                <StatIcon />
+                <Icon icon={StatIcon} size="lg" />
               </span>
               <div className="wp-stat-body">
                 <span className="wp-stat-label">{card.statLabel}</span>
@@ -581,13 +714,10 @@ const WaterPoints = () => {
         })}
       </div>
 
-      <section className="wp-table-panel glass-panel">
+      <section className="wp-table-panel glass-panel" style={{ position: 'relative' }}>
         <div className="wp-table-toolbar">
           <div className="search-bar wp-table-search">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <Icon icon={Search} size="md" />
             <input
               type="search"
               placeholder="Search by code or location..."
@@ -626,13 +756,10 @@ const WaterPoints = () => {
         </div>
 
         {loading ? (
-          <div className="loading">Loading water points…</div>
+          <Loader variant="section" label="Loading water points…" />
         ) : filteredPoints.length === 0 ? (
           <div className="empty-state">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: '1rem', opacity: 0.4 }} aria-hidden>
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
+            <Icon icon={MapPin} size="3xl" strokeWidth={1.5} style={{ marginBottom: '1rem', opacity: 0.4 }} />
             <p>
               {waterPoints.length === 0
                 ? 'No water points registered yet.'
@@ -785,10 +912,12 @@ const WaterPoints = () => {
       {detailPoint && (
         <WaterPointDetailModal
           point={detailPoint}
+          pointReports={pointReports}
           faultCount={faultCounts[detailPoint.code] || 0}
           onClose={() => setDetailPoint(null)}
           onFlyToMap={flyToOnMap}
           onDelete={handleDelete}
+          onViewReports={openReportsForPoint}
         />
       )}
     </div>

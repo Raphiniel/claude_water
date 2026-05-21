@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from .models import FaultReport, SystemSetting
 from .serializers import (
@@ -12,6 +12,8 @@ from .serializers import (
     PasswordChangeSerializer,
     UserAccountSerializer,
     AdminUserCreateSerializer,
+    AdminUserUpdateSerializer,
+    AdminSetPasswordSerializer,
 )
 from .roles import user_can_configure_sms_gateway, user_primary_role
 from gateway.models import Technician
@@ -44,12 +46,29 @@ class UserAccountViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return User.objects.all().order_by("username").prefetch_related("groups")
     permission_classes = [IsAdminUser]
-    http_method_names = ["get", "post", "delete", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    def _superuser_guard(self, request, target):
+        if target.is_superuser and not request.user.is_superuser:
+            return Response(
+                {"detail": "Only a superuser can manage superuser accounts."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
 
     def get_serializer_class(self):
         if self.action == "create":
             return AdminUserCreateSerializer
+        if self.action in ("partial_update", "update"):
+            return AdminUserUpdateSerializer
+        if self.action == "set_password":
+            return AdminSetPasswordSerializer
         return UserAccountSerializer
+
+    def _user_response(self, request, user):
+        return Response(
+            UserAccountSerializer(user, context={"request": request}).data,
+        )
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -60,6 +79,40 @@ class UserAccountViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    def partial_update(self, request, *args, **kwargs):
+        target = self.get_object()
+        if target.id == request.user.id and request.data.get("is_active") is False:
+            return Response(
+                {"is_active": ["You cannot disable your own account."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        denied = self._superuser_guard(request, target)
+        if denied:
+            return denied
+        serializer = AdminUserUpdateSerializer(
+            target,
+            data=request.data,
+            partial=True,
+            context={"request": request, "instance": target},
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return self._user_response(request, user)
+
+    @action(detail=True, methods=["post"], url_path="set-password")
+    def set_password(self, request, pk=None):
+        target = self.get_object()
+        denied = self._superuser_guard(request, target)
+        if denied:
+            return denied
+        serializer = AdminSetPasswordSerializer(
+            data=request.data,
+            context={"request": request, "instance": target},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Password updated."}, status=status.HTTP_200_OK)
+
     def destroy(self, request, *args, **kwargs):
         target = self.get_object()
         if target.id == request.user.id:
@@ -67,11 +120,9 @@ class UserAccountViewSet(viewsets.ModelViewSet):
                 {"detail": "You cannot delete your own account."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if target.is_superuser and not request.user.is_superuser:
-            return Response(
-                {"detail": "Only a superuser can delete another superuser account."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        denied = self._superuser_guard(request, target)
+        if denied:
+            return denied
         return super().destroy(request, *args, **kwargs)
 
 
@@ -101,7 +152,7 @@ def sms_webhook(request):
     )
     
     try:
-        reply_message = "Thank you for reporting to Waterwise. We have received your fault report and will attend to it."
+        reply_message = "Thank you for reporting to WaterWise. We have received your fault report and will attend to it."
         send_outbound_sms(reply_message, [phone_number])
     except Exception as e:
         logger.error(f"Failed to send Africa's Talking SMS reply: {e}")
@@ -199,6 +250,11 @@ class SystemSettingViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response(
+                {"detail": "Staff access is required to change system settings."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         # Always update the single setting object
         setting, created = SystemSetting.objects.get_or_create(id=1)
         serializer = self.get_serializer(setting, data=request.data, partial=True)

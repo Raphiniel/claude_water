@@ -8,6 +8,9 @@ import { formatDate } from './App';
 import Map3DViewer from './Map3DViewer';
 import TableRowMenu, { TableRowMenuItem } from './TableRowMenu';
 import { API_BASE as API } from './apiConfig';
+import { RefreshCw, Search, Users } from 'lucide-react';
+import { Icon } from './components/ui/icon';
+import { Loader } from './components/ui/loader';
 
 const STATUS_FILTERS = [
   { key: 'ALL', label: 'Active', dot: 'purple', hint: 'On the roster' },
@@ -715,7 +718,7 @@ const Technicians = () => {
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button type="button" onClick={fetchTechnicians} className="btn-secondary btn-sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            <Icon icon={RefreshCw} size="sm" strokeWidth={2.5} />
             Refresh
           </button>
           <button
@@ -757,7 +760,7 @@ const Technicians = () => {
       <div className="glass-panel">
         <div className="page-table-toolbar">
           <div className="search-bar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <Icon icon={Search} size="md" />
             <input
               type="search"
               placeholder="Search by name, phone or zone…"
@@ -768,10 +771,10 @@ const Technicians = () => {
         </div>
 
         {loading ? (
-          <div className="loading">Loading technicians…</div>
+          <Loader variant="section" label="Loading technicians…" />
         ) : filteredTechnicians.length === 0 ? (
           <div className="empty-state">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: '1rem', opacity: 0.4 }} aria-hidden><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <Icon icon={Users} size="3xl" strokeWidth={1.5} style={{ marginBottom: '1rem', opacity: 0.4 }} />
             <p>
               {technicians.length === 0
                 ? 'No technicians registered yet.'

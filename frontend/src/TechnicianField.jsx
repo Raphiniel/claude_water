@@ -114,9 +114,9 @@ const TechnicianField = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(165deg, #0a1628 0%, #0d0d12 45%)', color: '#e2e8f0', padding: '1.25rem' }}>
+    <div className="field-portal-page" style={{ minHeight: '100vh', background: 'linear-gradient(165deg, #0a1628 0%, #0d0d12 45%)', color: '#e2e8f0', padding: '1.25rem' }}>
       <div style={{ maxWidth: 520, margin: '0 auto' }}>
-        <h1 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 0.35rem', letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: '1.35rem', margin: '0 0 0.35rem' }}>
           WaterWise field
         </h1>
         <p style={{ margin: '0 0 1.25rem', fontSize: '0.88rem', color: '#94a3b8', lineHeight: 1.45 }}>

@@ -6,6 +6,9 @@ import { formatDate } from './App';
 
 import { API_BASE as API } from './apiConfig';
 import TableRowMenu, { TableRowMenuItem } from './TableRowMenu';
+import { Crosshair, FileText, RefreshCw } from 'lucide-react';
+import { Icon } from './components/ui/icon';
+import { Loader } from './components/ui/loader';
 
 const FAULT_LABELS = {
   PUMP: 'Pump Failure', LEAK: 'Pipe Leak', DRY: 'Borehole Dry',
@@ -84,10 +87,12 @@ const CloseFaultModal = ({ report, onClose, onConfirm, submitting, error }) => {
 const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign, onCloseFault, resolving }) => {
   const [full, setFull] = useState(report);
   const [loadErr, setLoadErr] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoadErr(null);
+    setDetailLoading(true);
     axios
       .get(`${API}/api/reports/${report.id}/`, { headers: authHeader() })
       .then((res) => {
@@ -95,6 +100,9 @@ const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign, on
       })
       .catch((err) => {
         if (!cancelled) setLoadErr(err.response?.data ? JSON.stringify(err.response.data) : err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
       });
     return () => {
       cancelled = true;
@@ -121,6 +129,10 @@ const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign, on
 
         {loadErr && <div className="alert alert-error" style={{ margin: '0 0 1rem' }}>{loadErr}</div>}
 
+        {detailLoading ? (
+          <Loader variant="section" label="Loading report details…" />
+        ) : (
+        <>
         <div style={{ display: 'grid', gap: '0.85rem', fontSize: '0.88rem' }}>
           <div>
             <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>Status</div>
@@ -212,6 +224,8 @@ const ReportDetailModal = ({ report, onClose, authHeader, navigate, onAssign, on
             </>
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   );
@@ -284,7 +298,7 @@ const AssignModal = ({ report, onClose, onAssigned, authHeader }) => {
           className="btn-primary"
           style={{ width: '100%', marginBottom: '1rem', justifyContent: 'center' }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+          <Icon icon={Crosshair} size="sm" strokeWidth={2.5} />
           Auto-assign Nearest Technician
         </button>
 
@@ -293,7 +307,7 @@ const AssignModal = ({ report, onClose, onAssigned, authHeader }) => {
             Nearby technicians
           </p>
           {loading ? (
-            <div className="loading" style={{ height: '70px' }}>Loading nearby technicians...</div>
+            <Loader variant="inline" label="Loading nearby technicians…" />
           ) : nearby.length === 0 ? (
             <div className="empty-state" style={{ padding: '1rem' }}>No technicians with location data near this water point.</div>
           ) : (
@@ -343,7 +357,7 @@ const AssignModal = ({ report, onClose, onAssigned, authHeader }) => {
             Or choose manually
           </p>
           {loading ? (
-            <div className="loading" style={{ height: '80px' }}>Loading...</div>
+            <Loader variant="inline" label="Loading technicians…" />
           ) : technicians.length === 0 ? (
             <div className="empty-state" style={{ padding: '1.5rem' }}>No technicians registered yet.</div>
           ) : (
@@ -484,7 +498,7 @@ const Reports = () => {
           <p className="page-subtitle">{reports.length} total reports across all water points</p>
         </div>
         <button onClick={fetchReports} className="btn-secondary btn-sm">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <Icon icon={RefreshCw} size="sm" strokeWidth={2.5} />
           Refresh
         </button>
       </div>
@@ -512,10 +526,10 @@ const Reports = () => {
 
       <div className="glass-panel">
         {loading ? (
-          <div className="loading">Loading reports...</div>
+          <Loader variant="section" label="Loading reports…" />
         ) : filtered.length === 0 ? (
           <div className="empty-state">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem', opacity: 0.4 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <Icon icon={FileText} size="3xl" strokeWidth={1.5} style={{ marginBottom: '1rem', opacity: 0.4 }} />
             <p>No {statusFilter !== 'ALL' ? statusFilter.replace('_', ' ').toLowerCase() : ''} reports found.</p>
           </div>
         ) : (

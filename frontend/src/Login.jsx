@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
 import { API_BASE } from './apiConfig';
+import { ButtonSpinner } from './components/ui/loader';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -35,7 +36,7 @@ const Login = () => {
       if (err.response?.status === 401) {
         setError('Invalid username or password.');
       } else {
-        setError('Connection error. Is the backend running?');
+        setError('Unable to sign in. Check your credentials and try again.');
       }
     } finally {
       setLoading(false);
@@ -80,8 +81,15 @@ const Login = () => {
               placeholder="Enter password"
             />
           </div>
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Authenticating...' : 'Sign In'}
+          <button type="submit" disabled={loading} className="btn-primary login-submit-btn">
+            {loading ? (
+              <>
+                <ButtonSpinner />
+                Signing in…
+              </>
+            ) : (
+              'Sign In'
+            )}
           </button>
         </form>
       </div>
